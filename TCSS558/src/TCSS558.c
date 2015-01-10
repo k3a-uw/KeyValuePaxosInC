@@ -9,8 +9,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include 'client.c'
+#include 'server.c'
 
-int main(void) {
+int main(int argc, char*argv[]) {
+	if (argv[0] == 'client')
+	{
+
+	}
 	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
 	return EXIT_SUCCESS;
 }
