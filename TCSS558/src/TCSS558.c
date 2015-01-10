@@ -9,14 +9,20 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include 'client.c'
-#include 'server.c'
+#include <string.h>
+#include "client.c"
+#include "server.c"
 
-int main(int argc, char*argv[]) {
-	if (argv[0] == 'client')
+int main(int argc, char *argv[]) {
+	if (strcmp(argv[0], "client") == 0)
 	{
-
+		client_main();
+	} else if (strcmp(argv[0], "client") == 0) {
+		server_main();
+	} else {
+		puts("Invalid Run Configuration.");
+		return -1;
 	}
-	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
-	return EXIT_SUCCESS;
+
+
 }
