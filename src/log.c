@@ -8,7 +8,6 @@
 #ifndef LOG_H
 #include "log.h"
 #endif
-
 /*******************************************************************************
  * WRITES A WELL FORMED MESSAGE AND RESPONSE TO THE SERVER.LOG FILE THAT WILL  *
  * INCLUDE A TIMESTAMP OF THE WRITE.  IF THE SERVER.LOG FILE DOES NOT EXIST IT *

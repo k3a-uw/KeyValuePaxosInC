@@ -1,25 +1,42 @@
 /*
  ============================================================================
- Name        : server.c
+ Name        : main.c
  Author      : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
  Version     : 2015.01.10
  Description : TCSS558 Project 1
  ============================================================================
  */
 
-#ifndef SERVER_H
-#include "server.h"
+#ifndef MAIN_H
+  #include "main.h"
 #endif
 
-int getTimeStamp(char * output);
+int main(int argc, char *argv[]) {
 
 
+	// to test a UDP SERVER
+	udp_server_main(argc, argv);
 
+	// to test a TCP SERVER
+	tcp_server_main(argc, argv);
 
-int main(void) {
+	// to test a UDP CLIENT
+	udp_client_main(argc, argv);
 
-	test_log();
+	// to test a TCP CLIENT
+	tcp_client_main(argc, argv);
 
+/*  OLD CODE THAT TESTS THE RUN ARGUMENTS
+	if (strcmp(argv[0], "client") == 0)
+	{
+		client_main();
+	} else if (strcmp(argv[0], "client") == 0) {
+		server_main();
+	} else {
+		puts("Invalid Run Configuration.");
+		return -1;
+	}
+*/
 }
 
 

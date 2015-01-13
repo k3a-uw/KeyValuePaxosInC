@@ -7,11 +7,19 @@
  ============================================================================
  */
 
+#ifndef _STDIO_H
+  #include <stdio.h>
+#endif
+
+
+// GLOBAL INCLUDES STANDARD ERROR CODES USED BY THE SYSTEM.
+#ifndef GLOBAL_H
+  #include "global.h"
+#endif
+
 #ifndef KEYVALUE_H
   #define KEYVALUE_H
   #define KV_DEFAULT_SIZE  8
-#endif
-
 
 // CREATE A STRUCT FOR HOLDING KEY VALUE PAIRS
 typedef struct element {
@@ -97,5 +105,6 @@ void kv_print(kv* the_kv);
 
 
 
+#endif
 
 

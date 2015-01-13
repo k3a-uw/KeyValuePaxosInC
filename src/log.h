@@ -1,11 +1,17 @@
+
 /*
  * log.h
  *
  *  Created on: Jan 11, 2015
  *      Author: kevanderson
  */
-#ifndef SERVER_H
-  #include "server.h"
+
+#ifndef _STDIO_H_
+  #include <stdio.h>
+#endif
+
+#ifndef _SYS_TIME_H_
+#include <sys/time.h>
 #endif
 
 #ifndef LOG_H

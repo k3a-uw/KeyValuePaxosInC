@@ -1,14 +1,12 @@
+
 /*
  ============================================================================
- Name        : keyvalue.h
+ Name        : keyvalue.c
  Author      : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
  Version     : 2015.01.10
  Description : TCSS558 Project 1
  ============================================================================
  */
-#ifndef SERVER_H
-  #include "server.h"
-#endif
 
 #ifndef KEYVALUE_H
   #include "keyvalue.h"
