@@ -15,6 +15,9 @@ int main(int argc, char *argv[]) {
 
 	// MOD
 	// to test a UDP SERVER
+
+	// kevin wrote some local.
+
 	udp_server_main(argc, argv);
 
 	// to test a TCP SERVER
