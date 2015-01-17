@@ -12,6 +12,7 @@
   #include "keyvalue.h"
 #endif
 
+#include <ctype.h>  //isdigit
 
 /*******************************************************************************
  * WRITES A WELL FORMED MESSAGE AND RESPONSE TO THE SERVER.LOG FILE THAT WILL  *
@@ -20,6 +21,7 @@
  * -1 OTHERWISE WILL RETURN 0.                                                 *
  ******************************************************************************/
 int log_write(char * host, int port, char * message, char * response);
+char *substring(char *string, int position, int length);
 
 
 
@@ -205,7 +207,104 @@ int kv_del(kv* the_kv, int key)
 	}
 }
 
+int kv_parser(char* message, int* ret_command, int* ret_key, int* ret_value)
+{
+	int command;
+	if (strlen(message) < 4)
+		return(-1); //MALFORMED;
 
+	command = message[0] - '0';
+	if (command < 0 || command > 2)
+		return(-2);  //MALFORMED
+
+	*ret_command = command;
+	if (message[1] != '|')
+		return (-3); //MALFORMED
+
+	int pipes_needed;
+	if (command == 0) // it is a PUT and needs 2 more pipes
+		pipes_needed = 2;
+	else
+		pipes_needed = 1;
+
+	int index = 2; //start at the third character of the message
+	int pipes[pipes_needed]; //locations of the pipes
+	int pipes_found = 0;
+	while (index < strlen(message) && pipes_found <= pipes_needed)
+	{
+		if (!(message[index] == '|' || isdigit(message[index]))) // VALIDATE EACH CHAR
+			return(-4); //MALFORMED
+
+		if (message[index] == '|')
+		{
+			pipes[pipes_found] = index;
+			pipes_found = pipes_found + 1;
+		}
+
+		index = index + 1;
+	}
+
+	// MAKE SURE WE HAVE ENOUGH PIPES
+	if(pipes_found < pipes_needed)
+		return (-5); //MALFORMED
+
+	int key_start = 2;
+	int key_length = pipes[0] - key_start;
+
+	if (key_length < 1)
+		return(-6); //MALFORMED
+
+	char* key_str;
+	key_str = substring (message, key_start+1, key_length);
+
+	char*toss;
+	*ret_key = strtol(key_str, &toss, 10);
+
+	int value_start;
+	int value_length;
+
+	if (command == 0)
+	{ // NEED TO GET THE VALUE
+		value_start = pipes[0]+1;
+		value_length = pipes[1] - value_start;
+		char* value_str = substring (message, value_start+1, value_length);
+		char*toss;
+		*ret_value = strtol(value_str, &toss, 10);
+
+	} else {
+		*ret_value = 0;
+	}
+
+	return(0);
+
+}
+
+char *substring(char *string, int position, int length)
+{
+   char *pointer;
+   int c;
+
+   pointer = malloc(length+1);
+
+   if (pointer == NULL)
+   {
+      printf("Unable to allocate memory.\n");
+      exit(-1);
+   }
+
+   for (c = 0 ; c < position -1 ; c++)
+      string++;
+
+   for (c = 0 ; c < length ; c++)
+   {
+      *(pointer+c) = *string;
+      string++;
+   }
+
+   *(pointer+c) = '\0';
+
+   return pointer;
+}
 /*******************************************************************************
  * KV_PRINT SIMPLY DISPLAYS THE CURRENT STATE OF THE KEYVALUE STORE TO THE     *
  * CONSOLE.  THIS INCLUDES THE CURRENT SIZE AND CAPACITY, AS WELL AS THE KEYS  *
