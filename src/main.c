@@ -11,18 +11,54 @@
   #include "main.h"
 #endif
 
+#include "keyvalue.h"
+
 int main(int argc, char *argv[]) {
 
-	// MOD
+	char* msg = "0|1232|1231|1232131231";
+
+	int command;
+	int key;
+	int value;
+
+	int parser_result;
+
+	parser_result = kv_parser(msg, &command, &key, &value);
+
+	printf("Parser result: %d", parser_result);
+	if (parser_result < 0)
+		exit(-1);
+//
+//		switch (command) {
+//		case 0:  //PUT
+//			kv_put(kv, key, value);
+//			break;
+//		case 1:
+//			kv_get(kv, key);
+//			break;
+//		case 2:
+//			kv_del(kv, key);
+//			break;
+//		default:
+//			printf("Error");
+//		}
+//
+
+//
+//		printf("Command: %d, Key: %d, Value: %d\n", command, key, value);
+//	} else {
+//		printf("The message is malformed.\n");
+//	}
+
+
+
+
+	printf("%s", msg);
 	// to test a UDP SERVER
-
-	// kevin wrote some local.
-	// hello world
-
 //	udp_server_main(argc, argv);
 
 	// to test a TCP SERVER
-	tcp_server_main(argc, argv);
+//	tcp_server_main(argc, argv);
 
 	// to test a UDP CLIENT
 //	udp_client_main(argc, argv);
