@@ -26,26 +26,19 @@
 
 int udp_server_main(int argc, char *argv[])
 {
-	printf("You're testing the UDP Server!\n Usage: udpserver port");
-	printf(" \n Example: udpserver 7000 \n");
+	printf("You're testing the UDP Server!\n");
+
 
 	int sockfd, rc, len, n;
 	struct sockaddr_in serveraddress;
 	struct sockaddr_in clientaddress;
 	char message[20];
 
-	//uint16_t serverport = 898989;
-	if(argc>1)
-	{
-		//serverport=atoi(argv[1]);
-	}
-	//printf("UDP Client - Usage %s <Server hostname or IP>\n", serverport);
-
 	// AF INET, to receive incoming connection
 	sockfd=socket(AF_INET,SOCK_DGRAM,0);
 	if (sockfd<0)
 	{
-		printf("Error setting up socket socket \n");
+		printf("Error setting the socket \n");
 		exit(-1);
 	}
 	else
@@ -56,7 +49,7 @@ int udp_server_main(int argc, char *argv[])
 	bzero(&serveraddress, sizeof(serveraddress));
 	serveraddress.sin_family = AF_INET;
 	serveraddress.sin_addr.s_addr = htonl(INADDR_ANY);
-	serveraddress.sin_port = htons(32119);
+	serveraddress.sin_port = htons(argv[1]);
 	rc = bind(sockfd, (struct sockaddr *)&serveraddress, sizeof(serveraddress));
 	if (rc<0)
 	{
@@ -65,7 +58,7 @@ int udp_server_main(int argc, char *argv[])
 		exit(-1);
 	}else
 	{
-		printf("Binding the socket. \n");
+		printf("Binding at port: %s \n", argv[1]);
 	}
 	while(1)
 	{
