@@ -19,13 +19,13 @@ int main(int argc, char *argv[]) {
 	// kevin wrote some local.
 	// hello world
 
-	udp_server_main(argc, argv);
+	//udp_server_main(argc, argv);
 
 	// to test a TCP SERVER
-	tcp_server_main(argc, argv);
+	//tcp_server_main(argc, argv);
 
 	// to test a UDP CLIENT
-	udp_client_main(argc, argv);
+	//udp_client_main(argc, argv);
 
 	// to test a TCP CLIENT
 	tcp_client_main(argc, argv);
