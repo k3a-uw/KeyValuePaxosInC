@@ -12,14 +12,14 @@
 #endif
 
 int main(int argc, char *argv[]) {
-	// to test udp server
-	udp_server_main(argc, argv);
+	//to test udp server
+	//udp_server_main(argc, argv);
 
 	// to test a TCP SERVER
 	//tcp_server_main(argc, argv);
 
 	// to test a UDP CLIENT
-	//udp_client_main(argc, argv);
+	udp_client_main(argc, argv);
 
 	// to test a TCP CLIENT
 //	tcp_client_main(argc, argv);
