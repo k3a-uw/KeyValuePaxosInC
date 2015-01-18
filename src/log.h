@@ -18,6 +18,7 @@
 #include <time.h>
 #endif
 
+
 #ifndef LOG_H
   #define LOG_H
   #define S_LOGFILE "server.log"
