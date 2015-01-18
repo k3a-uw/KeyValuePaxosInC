@@ -10,15 +10,12 @@
 #ifndef KEYVALUE_H
 #define KEYVALUE_H
 #define KV_DEFAULT_SIZE  8
+#ifndef MEMORY_ALLOCATION_ERROR
+  #define MEMORY_ALLOCATION_ERROR -255
+#endif
 
 #ifndef _STDIO_H
   #include <stdio.h>
-#endif
-
-
-// GLOBAL INCLUDES STANDARD ERROR CODES USED BY THE SYSTEM.
-#ifndef GLOBAL_H
-  #include "global.h"
 #endif
 
 
