@@ -8,7 +8,7 @@
 	#include <stdio.h>
 #endif
 
-#ifndef TYPES_H
+#ifndef stdlib
 	#include <sys/types.h>
 #endif
 
@@ -24,6 +24,8 @@
 	#include <arpa/inet.h>
 #endif
 
+#define BUFLEN 20
+
 int udp_server_main(int argc, char *argv[])
 {
 	printf("You're testing the UDP Server!\n");
@@ -31,7 +33,27 @@ int udp_server_main(int argc, char *argv[])
 	int sockfd, rc, n;
 	struct sockaddr_in serveraddress;
 	struct sockaddr_in clientaddress;
-	char message[20];
+	char message[BUFLEN];
+
+	if (argc !=2)
+		{
+			printf("Usage udpserver [portnumber] \n");
+		}
+
+	// Port Filter from KA
+	long port_l;
+	unsigned short port;
+	char *toss;
+	port_l = strtol(argv[1], &toss, 10);
+	if (port_l < 65535 && port_l >= 1000)  // we have a good port
+	{
+		port = (unsigned short) port_l;
+		printf("Port is %d\n", port);
+	} else {
+		printf("The port is invalid.  Please provide a port between 1000 and 65534 (inclusive).");
+		return(-1);
+	}
+
 
 	// SOCK_DGRAM, initiate sock in UDP
 	sockfd=socket(AF_INET,SOCK_DGRAM,0);
@@ -44,33 +66,37 @@ int udp_server_main(int argc, char *argv[])
 	{
 		printf("Socket established\n");
 	}
-	if (argc !=2)
-	{
-		printf("Usage tcpserver [portnumber] \n");
-	}
+
+
 	 // BIND IT
 	bzero(&serveraddress, sizeof(serveraddress));
 	serveraddress.sin_family = AF_INET;
 	serveraddress.sin_addr.s_addr = htonl(INADDR_ANY);
-	serveraddress.sin_port = htons(argv[1]);
+	serveraddress.sin_port = htons(port);
 	rc = bind(sockfd, (struct sockaddr *)&serveraddress, sizeof(serveraddress));
 	if (rc<0)
 	{
 		printf("Binding Error. \n Maybe try different port?");
 		close(sockfd);
 		exit(-1);
-	}else
-	{
-		printf("Binding at port: %s \n", argv[1]);
 	}
-	while(1)
-	{
-		n = recvfrom(sockfd,message,1000,0,(struct sockaddr *)&clientaddress,sizeof(clientaddress));
-		sendto(sockfd,message,n,0,(struct severaddress *)&clientaddress,sizeof(clientaddress));
-		message[n] = 0;
-		//printf("%s",message);
-	 }
+
+	while(1){
+		printf("Message received...\n");
+		int clientlength=sizeof(struct sockaddr_in);
+		n = recvfrom(sockfd,message,BUFLEN,0,(struct sockaddr*)&clientaddress,&clientlength);
+		message[n]=0;
+		printf("%s\n",message);
+
+		int sendback = sendto(sockfd,message,20,0,(struct sockaddr *)&clientaddress,sizeof(clientaddress));
+		if(sendback<0)
+		{
+			printf("Error replying");
+			exit(-1);
+		}
+	}
 	printf("finished");
+	close(sockfd);
 
 
 }
