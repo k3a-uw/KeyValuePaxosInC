@@ -13,7 +13,7 @@
 
 int main(int argc, char *argv[]) {
 	// to test udp server
-	udp_server_main(argc, argv);
+//	udp_server_main(argc, argv);
 
 	// to test a TCP SERVER
 	//tcp_server_main(argc, argv);
@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
 	//udp_client_main(argc, argv);
 
 	// to test a TCP CLIENT
-//	tcp_client_main(argc, argv);
+	tcp_client_main(argc, argv);
 
 /*  OLD CODE THAT TESTS THE RUN ARGUMENTS
 	if (strcmp(argv[0], "client") == 0)
