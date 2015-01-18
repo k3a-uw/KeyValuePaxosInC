@@ -3,16 +3,13 @@
  ============================================================================
  Name        : keyvalue.c
  Author      : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
- Version     : 2015.01.10
- Description : TCSS558 Project 1
+ Version     : 2015.01.18
  ============================================================================
  */
 
 #ifndef KEYVALUE_H
   #include "keyvalue.h"
 #endif
-
-#include <ctype.h>  //isdigit
 
 /*******************************************************************************
  * WRITES A WELL FORMED MESSAGE AND RESPONSE TO THE SERVER.LOG FILE THAT WILL  *
@@ -207,6 +204,11 @@ int kv_del(kv* the_kv, int key)
 	}
 }
 
+/*******************************************************************************
+ * PARSES MESSAGES THAT ARE SENT TO A SERVER TO DETERMINE THE COMMAND, KEY,    *
+ * AND VALUES IF APPLICABLE.  THE RESULTS ARE STORED IN RESPECTIVE POINTERS    *
+ * PROVIDED.  IF THE MESSAGE IS INVALID, KV_PARSER WILL RETURN -1. 0 OTHERWISE *
+ ******************************************************************************/
 int kv_parser(char* message, int* ret_command, int* ret_key, int* ret_value)
 {
 	int command;
