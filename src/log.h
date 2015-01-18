@@ -6,6 +6,10 @@
  *      Author: kevanderson
  */
 
+#ifndef LOG_H
+ #define LOG_H
+
+
 #ifndef _STDIO_H_
   #include <stdio.h>
 #endif
@@ -19,10 +23,6 @@
 #endif
 
 
-#ifndef LOG_H
-  #define LOG_H
-  #define S_LOGFILE "server.log"
-#endif
 
 
 
@@ -32,7 +32,7 @@
  * WILL BE CREATED.  IF THE FILE IS UNABLE TO BE OPENED, LOG_WRITE WILL RETURN *
  * -1 OTHERWISE WILL RETURN 0.                                                 *
  ******************************************************************************/
-int log_write(char * host, char * ip, int port, char * message, int is_recv);
+int log_write(char* filename, char * host, char * ip, int port, char * message, int is_recv);
 
 
 /*******************************************************************************
@@ -43,3 +43,6 @@ int log_write(char * host, char * ip, int port, char * message, int is_recv);
  * FOR MILLISECOND PRECISION, POSIX IS ASSUMED.                                *
  ******************************************************************************/
 void buildTimeStamp(char * output);
+
+
+#endif

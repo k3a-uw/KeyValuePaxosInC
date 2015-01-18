@@ -11,21 +11,7 @@
 #include "tcp_server.h"
 #endif
 
-#include <sys/socket.h> /* for socket(), bind(), and connect() */
-#include <arpa/inet.h>  /* for sockaddr_in and inet_ntoa() */
-#include <string.h>     /* for memset() */
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include "keyvalue.h"
-#include <netdb.h>
-#include <unistd.h>
-#include "log.h"
-
-#define MAXPENDING 5    /* Maximum outstanding connection requests */
-#define BUFFSIZE 128
 int handle_message(kv* kv_store, char* msg, char* response);
-void clear_buffer(char* msg);
 
 void DieWithError(char *errorMessage) /* Error handling function */
 {
@@ -116,7 +102,7 @@ int tcp_server_main(int argc, char *argv[])
     		DieWithError("host unknown");
 
 
-    	log_write(client_name->h_name, client_ip, port, buf, 1);
+    	log_write("server.log", client_name->h_name, client_ip, port, buf, 1);
 
     	result = handle_message(kv_store, buf, response);
 
@@ -124,7 +110,7 @@ int tcp_server_main(int argc, char *argv[])
     	if (n < 0)
     		DieWithError("write failed: ");
 
-    	log_write(client_name->h_name, client_ip, port, response, 0);
+    	log_write("server.log", client_name->h_name, client_ip, port, response, 0);
 
     	close(client_sock);
 
@@ -140,9 +126,6 @@ int handle_message(kv* kv_store, char* msg, char* response)
 	int key = 0;
 	int value = 0;
 	int r = kv_parser(msg, &command, &key, &value);
-
-	sprintf(response, "R: %d, C: %d, K: %d, V: %d\n", r, command, key, value);
-
 
 	if(r < 0)
 	{

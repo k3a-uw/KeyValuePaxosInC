@@ -7,6 +7,10 @@
  ============================================================================
  */
 
+#ifndef KEYVALUE_H
+#define KEYVALUE_H
+#define KV_DEFAULT_SIZE  8
+
 #ifndef _STDIO_H
   #include <stdio.h>
 #endif
@@ -17,9 +21,6 @@
   #include "global.h"
 #endif
 
-#ifndef KEYVALUE_H
-  #define KEYVALUE_H
-  #define KV_DEFAULT_SIZE  8
 
 // CREATE A STRUCT FOR HOLDING KEY VALUE PAIRS
 typedef struct element {

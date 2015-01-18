@@ -14,9 +14,9 @@
  * WILL BE CREATED.  IF THE FILE IS UNABLE TO BE OPENED, LOG_WRITE WILL RETURN *
  * -1 OTHERWISE WILL RETURN 0.                                                 *
  ******************************************************************************/
-int log_write(char * host, char * ip, int port, char * message, int is_recv)
+int log_write(char* filename, char * host, char * ip, int port, char * message, int is_recv)
 {
-	FILE * fd = fopen(S_LOGFILE, "a");
+	FILE * fd = fopen(filename, "a");
 
 
 	char msg[9];
