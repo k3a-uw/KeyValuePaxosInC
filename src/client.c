@@ -5,9 +5,54 @@
 
 int client_udp_init(char* hostname, unsigned short port_num)
 {
-	//TODO UPDATE UDP CLIENT (WHY IS THIS NOT COMMITTING1?)
-	printf("You ran the UDP client as hostname:port => %s:%d", hostname, port_num);
-	exit(0);
+	printf("You ran the UDP client as hostname:port => %s:%d\n", hostname, port_num);
+
+   int server_sock;
+   int n;
+
+   struct sockaddr_in server;
+   char rmessage[BUFFSIZE];
+
+   int message_count = 21;
+   char * messages[message_count];
+   getMessages (messages);
+
+   server_sock = socket(AF_INET, SOCK_DGRAM,0);
+
+   if(server_sock < 0)
+	   ClientErrorHandle("Socket() Failed");
+
+   bzero(&server, sizeof(server));
+   server.sin_family = AF_INET;
+   server.sin_addr.s_addr = inet_addr(hostname);
+   server.sin_port = htons(port_num);
+
+
+   int server_length = sizeof(server);
+   for (int i = 0; i < message_count; i++)
+   {
+	   n = sendto(server_sock, messages[i],strlen(messages[i]), 0 , (struct sockaddr *) &server, server_length);
+	   if (n < 0)
+	   {
+		   log_write("client.log", hostname, hostname, port_num, "Message Failed", 0);
+		   ClientErrorHandle("Message Send Failure");
+	   } else {
+		   log_write("client.log", hostname, hostname, port_num, messages[i], 0);
+	   }
+
+	   bzero(rmessage, BUFFSIZE);
+	   n = recvfrom(server_sock, rmessage, BUFFSIZE, 0, (struct sockaddr *) &server, &server_length);
+	   if (n < 0)
+		   log_write("client.log", hostname, hostname, port_num, "Response Failed",1);
+	   else
+		   log_write("client.log", hostname, hostname, port_num, rmessage, 1);
+   }
+
+   printf("Messages sent.  Ending communication.");
+   close(server_sock);
+
+   exit(0);
+
 }
 
 int client_tcp_init(char* hostname, unsigned short port_num)
@@ -18,11 +63,8 @@ int client_tcp_init(char* hostname, unsigned short port_num)
 	int server_sock;
 	int rc;
 	int n;
-	int sending;
 
 	struct sockaddr_in server;
-	struct sockaddr_in client;
-	char message[BUFFSIZE];
 	char rmessage[BUFFSIZE];
 
 	server_sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -39,7 +81,7 @@ int client_tcp_init(char* hostname, unsigned short port_num)
 		ClientErrorHandle("Cannot Connect to Server");
 		exit(-1);
 	} else {
-		printf("The server is connected");
+		printf("The server is connected.\n");
 	}
 
 	// PREPARE TO SEND MESSAGES
@@ -50,19 +92,20 @@ int client_tcp_init(char* hostname, unsigned short port_num)
 	// SEND A BUNCH OF MESSAGES!
 	for(int i = 0; i < message_count; i++)
 	{
-		n = send(server_sock, messages[i], strlen(messages[i]), 0);
+
+		n = send(server_sock, messages[i], BUFFSIZE, 0);
 		if (n < 0)
-			log_write("client.log", hostname, hostname, port_num, "Message Failed", 1);
+			log_write("client.log", hostname, hostname, port_num, "Message Failed", 0);
 		else
-			log_write("client.log", hostname, hostname, port_num, messages[i], 1);
+			log_write("client.log", hostname, hostname, port_num, messages[i], 0);
 
 		bzero(rmessage, BUFFSIZE);
-		n = recv(server_sock, rmessage, BUFFSIZE,0);
 
+		n = recv(server_sock, rmessage, BUFFSIZE,MSG_WAITALL);
 		if (n < 0)
-			log_write("client.log", hostname, hostname, port_num, "Received Failed", 0);
+			log_write("client.log", hostname, hostname, port_num, "Received Failed", 1);
 		else
-			log_write("client.log", hostname, hostname, port_num, rmessage, 0);
+			log_write("client.log", hostname, hostname, port_num, rmessage, 1);
 	}
 
 
