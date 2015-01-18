@@ -24,9 +24,10 @@ int udp_client_main(int argc, char *argv[])
 	printf("You're testing the UDP Client!\n");
 
    int sockfd,n,serverlength,sending;
-   struct sockaddr_in serveraddress,clientaddress;
+   struct sockaddr_in serveraddress;
    char message[BUFFLEN];
    char rmessage[BUFFLEN];
+   int i=0;
 
    //Checking the arguments
    if (argc != 3)
@@ -58,10 +59,37 @@ int udp_client_main(int argc, char *argv[])
    printf("Waiting to receive message from %s \n",argv[1]);
    while (1)
    {
-	  // Sending message to server
-	  serverlength=sizeof(serveraddress);
+
+	  if(i<5)
+	  {
+		  //POPULATING THE KEYS
+		  int value=i*100;
+		  sprintf(message,"0|%i|%i|",i,value);
+		  printf("Populating records. Here's the message %s\n",message);
+		  i++;
+	  }
+	  else if(i>4 && i<10)
+	  {
+		  //DISPLAYING THEM
+		  sprintf(message,"1|%i|",i-5);
+		  printf("Displaying records. Here's the message %s\n",message);
+		  i++;
+	  }
+	  else if(i>9 && i<15)
+	  {
+		  //DELETING THE RECORDS
+		  sprintf(message,"2|%i|",i-10);
+		  printf("Deleting records. Here's the message %s\n",message);
+		  i++;
+	  }
+	  else
+	  {
 	  printf("Use: STORE: 0|KEY|VALUE| GET: 1|KEY| DELETE: 2|KEY| \nKey and value must be Integer. Example: 0|1|6000| OR 1|1| OR 2|1| \nYour Command: ");
 	  scanf("%s",message);
+	  }
+
+	  // Sending message to server
+	  serverlength=sizeof(serveraddress);
       sending=sendto(sockfd,message,strlen(message),0,(struct sockaddr *)&serveraddress,serverlength);
       if (sending<0)
       {
@@ -72,7 +100,7 @@ int udp_client_main(int argc, char *argv[])
       printf("Sending message in the blind (UDP).\nWaiting for response...\n");
       // Receiving message from Server
       bzero(rmessage,BUFFLEN);
-      n=recvfrom(sockfd,rmessage,strlen(rmessage),0,(struct sockaddr *) &serveraddress,&serverlength);
+      n=recvfrom(sockfd,rmessage,BUFFLEN,0,(struct sockaddr *) &serveraddress,&serverlength);
       if(n<0)
       {
     	  printf("Error retrieving response from server. Is the server ready?\n");
