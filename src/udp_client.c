@@ -17,7 +17,7 @@
 #ifndef STDIO_H
 	#include <stdio.h>
 #endif
-#define BUFFLEN 20
+#define BUFFLEN 128
 
 int udp_client_main(int argc, char *argv[])
 {
@@ -60,7 +60,7 @@ int udp_client_main(int argc, char *argv[])
    {
 	  // Sending message to server
 	  serverlength=sizeof(serveraddress);
-	  printf("Use: 1|key|value\n0:put,1:get,2:del\nKey and value must be Integer\nYour Command: ");
+	  printf("Use: STORE: 0|KEY|VALUE| GET: 1|KEY| DELETE: 2|KEY| \nKey and value must be Integer. Example: 0|1|6000| OR 1|1| OR 2|1| \nYour Command: ");
 	  scanf("%s",message);
       sending=sendto(sockfd,message,BUFFLEN,0,(struct sockaddr *)&serveraddress,serverlength);
       if (sending<0)
@@ -81,7 +81,7 @@ int udp_client_main(int argc, char *argv[])
       }
       rmessage[n]=0;
       //Display it or do some calculation
-      printf("Here's a response from Server\n%s\n-----\n",rmessage);
+      printf("Here's a response from Server\n-----\n%s\n-----\n",rmessage);
    }
 
    return 0;
