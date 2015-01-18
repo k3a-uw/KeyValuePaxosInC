@@ -60,23 +60,28 @@ int udp_client_main(int argc, char *argv[])
    {
 	  // Sending message to server
 	  serverlength=sizeof(serveraddress);
-	  printf("Command: ");
-      sending=sendto(sockfd,message,strlen(message),0,
-             (struct sockaddr *)&serveraddress,serverlength);
+	  printf("Use: 1|key|value\n0:put,1:get,2:del\nKey and value must be Integer\nYour Command: ");
+	  scanf("%s",message);
+      sending=sendto(sockfd,message,BUFFLEN,0,(struct sockaddr *)&serveraddress,serverlength);
       if (sending<0)
       {
-    	  printf("Error sedning message");
+    	  printf("Error sending message...\nPerhaps your message is too long? (Max 20 chars)");
     	  close(sendto);
+    	  exit(-1);
       }
+      printf("Sending message in the blind (UDP).\nWaiting for response...\n");
       // Receiving message from Server
-      n=recvfrom(sockfd,rmessage, 1000,0,(struct sockaddr *) &serveraddress, sizeof(serveraddress));
+      bzero(rmessage,BUFFLEN);
+      n=recvfrom(sockfd,rmessage,BUFFLEN,0,(struct sockaddr *) &serveraddress,&serverlength);
       if(n<0)
       {
+    	  printf("Error retrieving response from server. Is the server ready?\n");
     	  close(recvfrom);
+    	  exit(-1);
       }
       rmessage[n]=0;
       //Display it or do some calculation
-      //fputs(rmessage,stdout);
+      printf("Here's a response from Server\n%s\n-----\n",rmessage);
    }
 
    return 0;

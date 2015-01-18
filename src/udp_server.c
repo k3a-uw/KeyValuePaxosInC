@@ -30,11 +30,11 @@ int udp_server_main(int argc, char *argv[])
 {
 	printf("You're testing the UDP Server!\n");
 
-	int sockfd, rc, n;
+	int sockfd, rc, n, clientlength, response;
 	struct sockaddr_in serveraddress;
 	struct sockaddr_in clientaddress;
-	char message[BUFLEN];
-
+	char message[BUFLEN];	//received message
+	char rmessage[BUFLEN]; 	//response message
 	if (argc !=2)
 		{
 			printf("Usage udpserver [portnumber] \n");
@@ -82,14 +82,20 @@ int udp_server_main(int argc, char *argv[])
 	}
 
 	while(1){
-		printf("Message received...\n");
-		int clientlength=sizeof(struct sockaddr_in);
+		printf("Ready to serve...\n");
+		//receiving messages
+		clientlength=sizeof(struct sockaddr_in);
 		n = recvfrom(sockfd,message,BUFLEN,0,(struct sockaddr*)&clientaddress,&clientlength);
 		message[n]=0;
-		printf("%s\n",message);
+		printf("%s received, ",message);
 
-		int sendback = sendto(sockfd,message,20,0,(struct sockaddr *)&clientaddress,sizeof(clientaddress));
-		if(sendback<0)
+		//message operations here
+		strcpy(rmessage,message);
+
+		//responding to message
+		printf("responding with %s.\n",rmessage);
+		int reponse = sendto(sockfd,rmessage,BUFLEN,0,(struct sockaddr *)&clientaddress,clientlength);
+		if(response<0)
 		{
 			printf("Error replying");
 			exit(-1);

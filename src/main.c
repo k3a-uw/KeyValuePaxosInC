@@ -13,7 +13,7 @@
 
 int main(int argc, char *argv[]) {
 	// to test a UDP SERVER
-	 udp_server_main(argc, argv);
+	udp_server_main(argc, argv);
 
 	// to test a TCP SERVER
 	 //tcp_server_main(argc, argv);
