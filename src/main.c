@@ -12,17 +12,22 @@
 #endif
 
 int main(int argc, char *argv[]) {
+
+	// MOD
 	// to test a UDP SERVER
-	udp_server_main(argc, argv);
+
+	// kevin wrote some local.
+	// hello world
+
+	//udp_server_main(argc, argv);
 
 	// to test a TCP SERVER
-	 //tcp_server_main(argc, argv);
-
+	tcp_server_main(argc, argv);
 	// to test a UDP CLIENT
 	//udp_client_main(argc, argv);
 
 	// to test a TCP CLIENT
-	// tcp_client_main(argc, argv);
+//	tcp_client_main(argc, argv);
 
 /*  OLD CODE THAT TESTS THE RUN ARGUMENTS
 	if (strcmp(argv[0], "client") == 0)
@@ -38,16 +43,7 @@ int main(int argc, char *argv[]) {
 }
 
 
-int test_log()
-{
-	for(int i = 0; i < 100; i++)
-	{
-		log_write("localhost", (i*4), "Message Sent", "I'm ignoring it");
-	}
 
-	printf("Log Completed, check the file \"%s\"" ,S_LOGFILE);
-
-}
 
 int test_kv()
 {

@@ -27,7 +27,7 @@
  * WILL BE CREATED.  IF THE FILE IS UNABLE TO BE OPENED, LOG_WRITE WILL RETURN *
  * -1 OTHERWISE WILL RETURN 0.                                                 *
  ******************************************************************************/
-int log_write(char * host, int port, char * message, char * response);
+int log_write(char * host, char * ip, int port, char * message, int is_recv);
 
 
 /*******************************************************************************

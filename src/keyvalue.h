@@ -56,7 +56,7 @@ int kv_expand(kv * the_kv);
  * THIS FUNCTION SHOULD CHECK THE VALUE AT THAT ADDRESS TO DETERMINE WHETHER   *
  * OR NOT THE KEY WAS FOUND.                                                   *
  ******************************************************************************/
-int kv_get(kv * the_kv, int key, int * err);
+int kv_get(kv * the_kv, int key, int * value);
 
 
 /*******************************************************************************
@@ -103,6 +103,7 @@ int kv_del(kv* the_kv, int key);
  ******************************************************************************/
 void kv_print(kv* the_kv);
 
+int kv_parser(char* message, int* ret_command, int* ret_key, int* ret_value);
 
 
 #endif

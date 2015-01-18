@@ -109,17 +109,17 @@ int kv_expand(kv * the_kv)
  * THIS FUNCTION SHOULD CHECK THE VALUE AT THAT ADDRESS TO DETERMINE WHETHER   *
  * OR NOT THE KEY WAS FOUND.                                                   *
  ******************************************************************************/
-int kv_get(kv * the_kv, int key, int * err)
+int kv_get(kv * the_kv, int key, int * value)
 {
 	//LOOK TO SEE IF THE KEY EXISTS AND IF SO, GET ITS INDEX
+
 	int result = kv_exists(the_kv, key);
 	if (result != -1)
 	{
-		*err = 0;
-		return the_kv->elements[result].value;
+		*value = the_kv->elements[result].value;
+		return 0;
 	} else {
-		*err = -1;
-		return NULL;
+		return -1;
 	}
 }
 
@@ -218,8 +218,10 @@ int kv_parser(char* message, int* ret_command, int* ret_key, int* ret_value)
 		return(-2);  //MALFORMED
 
 	*ret_command = command;
+
 	if (message[1] != '|')
 		return (-3); //MALFORMED
+
 
 	int pipes_needed;
 	if (command == 0) // it is a PUT and needs 2 more pipes
@@ -230,8 +232,11 @@ int kv_parser(char* message, int* ret_command, int* ret_key, int* ret_value)
 	int index = 2; //start at the third character of the message
 	int pipes[pipes_needed]; //locations of the pipes
 	int pipes_found = 0;
-	while (index < strlen(message) && pipes_found <= pipes_needed)
+
+	int msg_len = strlen(message);
+	while (index < msg_len && pipes_found < pipes_needed)
 	{
+
 		if (!(message[index] == '|' || isdigit(message[index]))) // VALIDATE EACH CHAR
 			return(-4); //MALFORMED
 
@@ -248,17 +253,19 @@ int kv_parser(char* message, int* ret_command, int* ret_key, int* ret_value)
 	if(pipes_found < pipes_needed)
 		return (-5); //MALFORMED
 
+
 	int key_start = 2;
 	int key_length = pipes[0] - key_start;
 
 	if (key_length < 1)
 		return(-6); //MALFORMED
 
+
 	char* key_str;
 	key_str = substring (message, key_start+1, key_length);
 
 	char*toss;
-	*ret_key = strtol(key_str, &toss, 10);
+	*ret_key = (int) strtol(key_str, &toss, 10);
 
 	int value_start;
 	int value_length;
@@ -270,7 +277,6 @@ int kv_parser(char* message, int* ret_command, int* ret_key, int* ret_value)
 		char* value_str = substring (message, value_start+1, value_length);
 		char*toss;
 		*ret_value = strtol(value_str, &toss, 10);
-
 	} else {
 		*ret_value = 0;
 	}
@@ -289,7 +295,7 @@ char *substring(char *string, int position, int length)
    if (pointer == NULL)
    {
       printf("Unable to allocate memory.\n");
-      exit(-1);
+//      exit(-1);
    }
 
    for (c = 0 ; c < position -1 ; c++)
@@ -305,6 +311,7 @@ char *substring(char *string, int position, int length)
 
    return pointer;
 }
+
 /*******************************************************************************
  * KV_PRINT SIMPLY DISPLAYS THE CURRENT STATE OF THE KEYVALUE STORE TO THE     *
  * CONSOLE.  THIS INCLUDES THE CURRENT SIZE AND CAPACITY, AS WELL AS THE KEYS  *
