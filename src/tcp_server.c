@@ -116,7 +116,7 @@ int tcp_server_main(int argc, char *argv[])
     		DieWithError("host unknown");
 
 
-    	log_write("server.log", client_name->h_name, client_ip, port, buf, 1);
+    	log_write(client_name->h_name, client_ip, port, buf, 1);
 
     	result = handle_message(kv_store, buf, response);
 
@@ -124,7 +124,7 @@ int tcp_server_main(int argc, char *argv[])
     	if (n < 0)
     		DieWithError("write failed: ");
 
-    	log_write("server.log",client_name->h_name, client_ip, port, response, 0);
+    	log_write(client_name->h_name, client_ip, port, response, 0);
 
     	close(client_sock);
 
