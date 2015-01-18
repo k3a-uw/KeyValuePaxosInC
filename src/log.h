@@ -10,12 +10,13 @@
   #include <stdio.h>
 #endif
 
-#ifndef _SYS_TIME_H_
-#include <sys/time.h>
-#endif
-
 #ifndef _TIME_H_
 #include <time.h>
+#endif
+
+
+#ifndef _SYS_TIME_H_
+#include <sys/time.h>
 #endif
 
 
