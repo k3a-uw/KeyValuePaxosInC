@@ -59,8 +59,7 @@ int udp_client_main(int argc, char *argv[])
    printf("Waiting to receive message from %s \n",argv[1]);
    while (1)
    {
-	  // Sending message to server
-	  serverlength=sizeof(serveraddress);
+
 	  if(i<5)
 	  {
 		  //POPULATING THE KEYS
@@ -88,6 +87,9 @@ int udp_client_main(int argc, char *argv[])
 	  printf("Use: STORE: 0|KEY|VALUE| GET: 1|KEY| DELETE: 2|KEY| \nKey and value must be Integer. Example: 0|1|6000| OR 1|1| OR 2|1| \nYour Command: ");
 	  scanf("%s",message);
 	  }
+
+	  // Sending message to server
+	  serverlength=sizeof(serveraddress);
       sending=sendto(sockfd,message,strlen(message),0,(struct sockaddr *)&serveraddress,serverlength);
       if (sending<0)
       {
