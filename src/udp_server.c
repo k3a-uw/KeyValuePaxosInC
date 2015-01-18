@@ -23,18 +23,23 @@
 #ifndef INET_H
 	#include <arpa/inet.h>
 #endif
+#include <netdb.h>
+#include "keyvalue.h"
+#include "log.h"
 
-#define BUFLEN 20
+#define BUFLEN 128
 
 int udp_server_main(int argc, char *argv[])
 {
+	kv* kv_store = kv_new();
 	printf("You're testing the UDP Server!\n");
 
-	int sockfd, rc, n, clientlength, response;
+	int sockfd, rc, n, clientlength, response, result;
 	struct sockaddr_in serveraddress;
 	struct sockaddr_in clientaddress;
 	char message[BUFLEN];	//received message
 	char rmessage[BUFLEN]; 	//response message
+
 	if (argc !=2)
 		{
 			printf("Usage udpserver [portnumber] \n");
@@ -89,8 +94,27 @@ int udp_server_main(int argc, char *argv[])
 		message[n]=0;
 		printf("%s received, ",message);
 
+
+		// KA'S LOG HANDLER
+
+	    struct hostent *client_name;
+		client_name = gethostbyaddr((const char *)&clientaddress.sin_addr.s_addr,sizeof(clientaddress.sin_addr.s_addr), AF_INET);
+
+		char *client_ip;
+		client_ip = inet_ntoa(clientaddress.sin_addr);
+
+		if ((client_ip == NULL)||(client_name == NULL))
+		{
+			printf("Host unknown. Program will now exit.");
+			exit(-1);
+		}
+
+		log_write(client_name->h_name, client_ip, port, message, 0);
+
+
 		//message operations here
-		strcpy(rmessage,message);
+		//strcpy(rmessage,message);
+		result = handle_message(kv_store, message, rmessage);
 
 		//responding to message
 		printf("responding with %s.\n",rmessage);
@@ -100,9 +124,9 @@ int udp_server_main(int argc, char *argv[])
 			printf("Error replying");
 			exit(-1);
 		}
+		log_write(client_name->h_name, client_ip, port, message, 1);
 	}
 	printf("finished");
 	close(sockfd);
-
-
 }
+
