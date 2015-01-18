@@ -118,7 +118,7 @@ int udp_server_main(int argc, char *argv[])
 
 		//responding to message
 		printf("responding with %s.\n",rmessage);
-		int reponse = sendto(sockfd,rmessage,BUFLEN,0,(struct sockaddr *)&clientaddress,clientlength);
+		int reponse = sendto(sockfd,rmessage,strlen(rmessage),0,(struct sockaddr *)&clientaddress,clientlength);
 		if(response<0)
 		{
 			printf("Error replying");
