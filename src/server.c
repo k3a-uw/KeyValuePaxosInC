@@ -6,7 +6,7 @@
 
 int server_tcp_init(unsigned short port_num)
 {
-	printf("You are running TCP Server on port number: %d.", port_num);
+	printf("You are running TCP Server on port number: %d.\n", port_num);
 
 	// CREATE A NEW KEY VALUE STORE
 	kv* kv_store = kv_new();
@@ -46,40 +46,44 @@ int server_tcp_init(unsigned short port_num)
     int result;
     struct hostent *client_name; /* client host info */
 
-    while(1)
+	printf("Waiting for input...\n");
+
+	while(1)
     {
-    	client_sock = accept(sock, (struct sockaddr *) &client, &client_len);
-    	if (client_sock == -1)
-    		ServerErrorHandle("accept() failed: ");
-    	else
+		client_sock = accept(sock, (struct sockaddr *) &client, &client_len);
+		if (client_sock == -1)
+			ServerErrorHandle("accept() failed: ");
 
-    	//HANDLE MESSAGE
-    	bzero(buf, BUFFSIZE);  //ZERO OUT BUFFER
-    	printf("Waiting for input...");
-    	n = read(client_sock, buf, BUFFSIZE);
-    	if (n < 0)
-    		ServerErrorHandle("read() failed: ");
 
-    	// GET CLIENT INFO
-    	client_name = gethostbyaddr((const char *)&client.sin_addr.s_addr,
-    				  sizeof(client.sin_addr.s_addr), AF_INET);
+		// GET CLIENT INFO
+		client_name = gethostbyaddr((const char *)&client.sin_addr.s_addr,
+					  sizeof(client.sin_addr.s_addr), AF_INET);
 
-       	if (client_name == NULL || client_ip == NULL)
-        		ServerErrorHandle("host unknown");
+	   	if (client_name == NULL || client_ip == NULL)
+	    		ServerErrorHandle("host unknown");
 
-    	client_ip = inet_ntoa(client.sin_addr);
+		client_ip = inet_ntoa(client.sin_addr);
 
-    	log_write("server.log", client_name->h_name, client_ip, port_num, buf, 1);
+		while(1) {  //HANDLE INCOMING MESSAGE
+			bzero(buf, BUFFSIZE);  //ZERO OUT BUFFER
+			n = recv(client_sock, buf, BUFFSIZE, MSG_WAITALL);
+			if (n < 0)
+				ServerErrorHandle("read() failed: ");
+			else if (n == 0) //CONNECTION CLOSED
+				break;
 
-    	result = server_handle_message(kv_store, buf, response);
-
-    	n = write(client_sock, response, strlen(response));
-    	if (n < 0)
-    		ServerErrorHandle("write failed: ");
-
-    	log_write("server.log", client_name->h_name, client_ip, port_num, response, 0);
-
-    	close(client_sock);
+			if (strlen(buf) > 1)
+			{
+				log_write("server.log", client_name->h_name, client_ip, port_num, buf, 1);
+				bzero(response, BUFFSIZE);
+				result = server_handle_message(kv_store, buf, response);
+				n = send(client_sock, response, BUFFSIZE,0);
+				if (n < 0)
+					printf("Responding Failed\n"); //ServerErrorHandle("write failed: ");
+				log_write("server.log", client_name->h_name, client_ip, port_num, response, 0);
+			}
+		} //CLOSE INNER WHILE
+		close(client_sock);
 
     }
 
@@ -88,7 +92,7 @@ int server_tcp_init(unsigned short port_num)
 
 int server_udp_init(unsigned short port_num)
 {
-	printf("You are running UDP Server on port number: %d.", port_num);
+	printf("You are running UDP Server on port number: %d.\n", port_num);
 
 	// CREATE A NEW KEY VALUE STORE
 	kv* kv_store = kv_new();
@@ -112,6 +116,7 @@ int server_udp_init(unsigned short port_num)
     if (bindsock < 0)
     	ServerErrorHandle("bind() failed: ");
 
+
     struct sockaddr_in client;
     int client_len = sizeof(client);
 
@@ -119,43 +124,42 @@ int server_udp_init(unsigned short port_num)
     char response[BUFFSIZE];
     char *client_ip;
     int n;
-    int m;
-    int result;
     struct hostent *client_name; /* client host info */
 
-    while(1)
+	printf("Waiting for input...\n");
+
+	while(1)
     {
-    	//HANDLE MESSAGE
-    	bzero(buf, BUFFSIZE);  //ZERO OUT BUFFER
-    	printf("Waiting for input...");
-    	n = recvfrom(sock, buf, BUFFSIZE, 0, (struct sockaddr*) &client, &client_len);
-    	if (n < 0)
-    		ServerErrorHandle("recvfrom failed: ");
+		bzero(buf, BUFFSIZE);  //ZERO OUT BUFFER
+		n = recvfrom(sock, buf, BUFFSIZE, 0, (struct sockaddr*) &client, &client_len);
+		if (n < 0)
+			ServerErrorHandle("recvfrom() failed");
 
-    	// GET CLIENT INFO
-    	client_name = gethostbyaddr((const char *)&client.sin_addr.s_addr,
-    				  sizeof(client.sin_addr.s_addr), AF_INET);
+		client_name = gethostbyaddr((const char *)&client.sin_addr.s_addr,
+					  sizeof(client.sin_addr.s_addr), AF_INET);
 
-    	if (client_name == NULL || client_ip == NULL)
-    		ServerErrorHandle("host unknown");
+		client_ip = inet_ntoa(client.sin_addr);
+		if (client_name == NULL || client_ip == NULL)
+			ServerErrorHandle("host unknown");
 
-    	client_ip = inet_ntoa(client.sin_addr);
+		if (strlen(buf) > 1)
+		{
+			// WRITE THE MESSAGE RECEIVED TO THE SERVER LOG
+			log_write("server.log", client_name->h_name, client_ip, port_num, buf, 1);
 
-    	log_write("server.log", client_name->h_name, client_ip, port_num, buf, 1);
+			// PROCESS THE MESSAGE
+			bzero(response, BUFFSIZE);
+			int result = server_handle_message(kv_store, buf, response);
 
-    	bzero(response, BUFFSIZE);
-    	result = server_handle_message(kv_store, buf, response);
+			// RESPOND WITH RESULTS
+			n = sendto(sock, response, BUFFSIZE, 0, (struct sockaddr *) &client, client_len);
+			log_write("server.log", client_name->h_name, client_ip, port_num, response, 0);
 
-		m = sendto(sock,response, strlen(response), 0, (struct sockaddr *) &client, client_len);
-    	if (m < 0)
-    		ServerErrorHandle("write failed!!!");
-
-    	log_write("server.log", client_name->h_name, client_ip, port_num, response, 0);
-
-
+			if (n < 0)
+				printf("Responding Failed\n"); //ServerErrorHandle("write failed: ");
+		}
     }
 	close(sock);
-
     return(0);
 }
 
