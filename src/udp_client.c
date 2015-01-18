@@ -25,8 +25,8 @@ int udp_client_main(int argc, char *argv[])
 
    int sockfd,n,sending;
    struct sockaddr_in serveraddress,clientaddress;
-   char message[1000];
-   char rmessage[1000];
+   char message[20];
+   char rmessage[20];
 
    //Checking the arguments
    if (argc != 3)

@@ -28,22 +28,25 @@ int udp_server_main(int argc, char *argv[])
 {
 	printf("You're testing the UDP Server!\n");
 
-
-	int sockfd, rc, len, n;
+	int sockfd, rc, n;
 	struct sockaddr_in serveraddress;
 	struct sockaddr_in clientaddress;
 	char message[20];
 
-	// AF INET, to receive incoming connection
+	// SOCK_DGRAM, initiate sock in UDP
 	sockfd=socket(AF_INET,SOCK_DGRAM,0);
 	if (sockfd<0)
 	{
-		printf("Error setting the socket \n");
+		printf("Error establishing socket \n");
 		exit(-1);
 	}
 	else
 	{
-		printf("Setting the Socket \n");
+		printf("Socket established\n");
+	}
+	if (argc !=2)
+	{
+		printf("Usage tcpserver [portnumber] \n");
 	}
 	 // BIND IT
 	bzero(&serveraddress, sizeof(serveraddress));
@@ -53,7 +56,7 @@ int udp_server_main(int argc, char *argv[])
 	rc = bind(sockfd, (struct sockaddr *)&serveraddress, sizeof(serveraddress));
 	if (rc<0)
 	{
-		printf("Binding Error. \n");
+		printf("Binding Error. \n Maybe try different port?");
 		close(sockfd);
 		exit(-1);
 	}else
@@ -62,11 +65,10 @@ int udp_server_main(int argc, char *argv[])
 	}
 	while(1)
 	{
-		len = sizeof(clientaddress);
-		n = recvfrom(sockfd,message,1000,0,(struct sockaddr *)&clientaddress,&len);
+		n = recvfrom(sockfd,message,1000,0,(struct sockaddr *)&clientaddress,sizeof(clientaddress));
 		sendto(sockfd,message,n,0,(struct severaddress *)&clientaddress,sizeof(clientaddress));
 		message[n] = 0;
-		printf("%s",message);
+		//printf("%s",message);
 	 }
 	printf("finished");
 
