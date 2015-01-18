@@ -109,7 +109,7 @@ int udp_server_main(int argc, char *argv[])
 			exit(-1);
 		}
 
-		log_write(client_name->h_name, client_ip, port, message, 0);
+		log_write("server.log", client_name->h_name, client_ip, port, message, 0);
 
 
 		//message operations here
@@ -124,7 +124,7 @@ int udp_server_main(int argc, char *argv[])
 			printf("Error replying");
 			exit(-1);
 		}
-		log_write(client_name->h_name, client_ip, port, message, 1);
+		log_write("server.log", client_name->h_name, client_ip, port, message, 1);
 	}
 	printf("finished");
 	close(sockfd);

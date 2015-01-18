@@ -8,8 +8,14 @@
  */
 
 #ifndef MAIN_H
-  #define MAIN_H
-  #define MEMORY_ALLOCATION_ERROR -255
+#define MAIN_H
+
+#ifndef CLIENT_H
+  #include "client.h"
+#endif
+
+#ifndef SERVER_H
+  #include "server.h"
 #endif
 
 #ifndef _STDIO_H_
@@ -20,32 +26,10 @@
   #include <stdlib.h>
 #endif
 
-#ifndef _STRING_H_
-  #include <string.h>
-#endif
-
-#ifndef UDP_CLIENT_H
-  #include "udp_client.h"
-#endif
-
-#ifndef UDP_SERVER_H
-  #include "udp_server.h"
-#endif
-
-#ifndef TCP_CLIENT_H
-  #include "tcp_client.h"
-#endif
-
-#ifndef TCP_SERVER_H
-  #include "tcp_server.h"
-#endif
-
-#ifndef LOG_H
-  #include "log.h"
-#endif
-
-#ifndef KEYVALUE_H
-  #include "keyvalue.h"
-#endif
 
 int main(int argc, char *argv[]);
+int validateCommandLine(int argc, char * argv[], char* hostname, unsigned short* port_num);
+int validatePort(char* arg);
+void printMenu(int argc);
+
+#endif /* MAIN_H */
