@@ -1,8 +1,25 @@
+/*
+ ============================================================================
+ Name        : client.c
+ Author      : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
+ Version     : 2015.01.18
+ Description : Connects to the server over the desired protocol.  Messages are passed
+               between and logged to a file: client.log
+ ============================================================================
+ */
+
+
 #ifndef CLIENT_H
 #include "client.h"
 #endif
 
-
+/********************************************************
+ *  LAUNCHES A SCRIPT THAT COMMUNICATES WITH THE SERVER *
+ *  INDICATED, OVER THE PORT_NUMBER PROVIDED.  CALLS    *
+ *  getMessages() TO DETERMINE WHAT COMMANDS TO SEND TO *
+ *  THE SERVER. EXITS PROGRAM WHEN COMPLETED.           *
+ *  THE PROTOCOL USED: UDP
+ ********************************************************/
 int client_udp_init(char* hostname, unsigned short port_num)
 {
 	printf("You ran the UDP client as hostname:port => %s:%d\n", hostname, port_num);
@@ -55,6 +72,13 @@ int client_udp_init(char* hostname, unsigned short port_num)
 
 }
 
+/********************************************************
+ *  LAUNCHES A SCRIPT THAT COMMUNICATES WITH THE SERVER *
+ *  INDICATED, OVER THE PORT_NUMBER PROVIDED.  CALLS    *
+ *  getMessages() TO DETERMINE WHAT COMMANDS TO SEND TO *
+ *  THE SERVER. EXITS PROGRAM WHEN COMPLETED.           *
+ *  THE PROTOCOL USED: TCP
+ ********************************************************/
 int client_tcp_init(char* hostname, unsigned short port_num)
 {
 	printf("You ran the TCP client as hostname:port => %s:%d", hostname, port_num);
@@ -115,7 +139,10 @@ int client_tcp_init(char* hostname, unsigned short port_num)
 
 }
 
-
+/*****************************************************
+ * RETURNS A CHAR* ARRAY THAT CONTAINTS A SERIES OF  *
+ * MESSAGES THAT ARE TO BE SENT TO THE SERVER        *
+ * **************************************************/
 void getMessages(char* messages[])
 {
 	messages[0]  = "0|1|1234|";  //first put
@@ -144,6 +171,10 @@ void getMessages(char* messages[])
 	return;
 }
 
+/*********************************************
+ * WRITES ERROR TO THE CONSOLE AND EXITS THE *
+ * SYSTEM WITH AN ERROR CODE OF -1           *
+ ********************************************/
 void ClientErrorHandle(char *errorMessage) /* Error handling function */
 {
 	perror(errorMessage);

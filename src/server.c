@@ -1,9 +1,24 @@
+/*
+ ============================================================================
+ Name        : server.c
+ Author      : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
+ Version     : 2015.01.18
+ Description : Listens and handles incoming messages from a client.  It will
+             : add, put and delete values into a key value store.  Runs
+             : forever until a kill or ctrl+c command is ran.
+ ============================================================================
+ */
 
 #ifndef SERVER_H
 #include "server.h"
 #endif
 
-
+/******************************************
+ * LAUNCHES A TCP SERVER TO LISTEN ON THE *
+ * PORT PROVIDED.  RUNS UNTIL PROCES IS   *
+ * KILLED.  WILL FAIL IF SOCKETS ARE      *
+ * UNABLE TO BE CREATED, BOUND, ETC.      *
+ *****************************************/
 int server_tcp_init(unsigned short port_num)
 {
 	printf("You are running TCP Server on port number: %d.\n", port_num);
@@ -90,6 +105,12 @@ int server_tcp_init(unsigned short port_num)
     return(0);
 }
 
+/******************************************
+ * LAUNCHES A UDP SERVER TO LISTEN ON THE *
+ * PORT PROVIDED.  RUNS UNTIL PROCES IS   *
+ * KILLED.  WILL FAIL IF SOCKETS ARE      *
+ * UNABLE TO BE CREATED, BOUND, ETC.      *
+ *****************************************/
 int server_udp_init(unsigned short port_num)
 {
 	printf("You are running UDP Server on port number: %d.\n", port_num);
@@ -164,7 +185,14 @@ int server_udp_init(unsigned short port_num)
 }
 
 
-
+/******************************************
+ * INTERPRETS THE MESSAGE RECEIVED BY THE *
+ * SERVER FROM THE CLIENT AND DETERMINES  *
+ * WHAT ACTION TO TAKE.  IF THE MESSAGE IS*
+ * MALFORMED IT WILL RETURN -1 OTHERWISE  *
+ * THE RESPONSE WILL BE STORED IN THE     *
+ * BUFFER PROVIDED.                       *
+ *****************************************/
 int server_handle_message(kv* kv_store, char* msg, char* response)
 {
 	int command = 0;
@@ -212,6 +240,10 @@ int server_handle_message(kv* kv_store, char* msg, char* response)
 	return(0);
 }
 
+/**********************************
+ * WRITES AN ERROR TO THE CONSOLE *
+ * AND EXIST THE PROGRAM          *
+ *********************************/
 void ServerErrorHandle(char *errorMessage) /* Error handling function */
 {
 	perror(errorMessage);

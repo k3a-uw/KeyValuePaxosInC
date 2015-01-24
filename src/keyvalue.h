@@ -2,24 +2,36 @@
  ============================================================================
  Name        : keyvalue.h
  Author      : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
- Version     : 2015.01.10
- Description : TCSS558 Project 1
+ Version     : 2015.01.18
+ Description : Keyvalue serves as the primary data structure for the system.
  ============================================================================
  */
+
 
 #ifndef KEYVALUE_H
 #define KEYVALUE_H
 #define KV_DEFAULT_SIZE  8
+#ifndef MEMORY_ALLOCATION_ERROR
+  #define MEMORY_ALLOCATION_ERROR -255
+#endif
 
 #ifndef _STDIO_H
   #include <stdio.h>
 #endif
 
-
-// GLOBAL INCLUDES STANDARD ERROR CODES USED BY THE SYSTEM.
-#ifndef GLOBAL_H
-  #include "global.h"
+#ifndef _CTYPE_H_
+  #include <ctype.h>  //isdigit
 #endif
+
+#ifndef _PTHREAD_H
+  #include <pthread.h>
+#endif
+
+#ifndef _STDLIB_H
+  #include <stdlib.h>
+#endif
+
+
 
 
 // CREATE A STRUCT FOR HOLDING KEY VALUE PAIRS
@@ -29,6 +41,8 @@ typedef struct element {
 } element;
 
 typedef struct kv {
+	pthread_mutex_t lock;
+
 	int capacity;
 	int size;
 	element * elements;
@@ -104,6 +118,11 @@ int kv_del(kv* the_kv, int key);
  ******************************************************************************/
 void kv_print(kv* the_kv);
 
+/*******************************************************************************
+ * PARSES MESSAGES THAT ARE SENT TO A SERVER TO DETERMINE THE COMMAND, KEY,    *
+ * AND VALUES IF APPLICABLE.  THE RESULTS ARE STORED IN RESPECTIVE POINTERS    *
+ * PROVIDED.  IF THE MESSAGE IS INVALID, KV_PARSER WILL RETURN -1. 0 OTHERWISE *
+ ******************************************************************************/
 int kv_parser(char* message, int* ret_command, int* ret_key, int* ret_value);
 
 
