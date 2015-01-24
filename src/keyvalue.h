@@ -23,6 +23,15 @@
   #include <ctype.h>  //isdigit
 #endif
 
+#ifndef _PTHREAD_H
+  #include <pthread.h>
+#endif
+
+#ifndef _STDLIB_H
+  #include <stdlib.h>
+#endif
+
+
 
 
 // CREATE A STRUCT FOR HOLDING KEY VALUE PAIRS
@@ -32,6 +41,8 @@ typedef struct element {
 } element;
 
 typedef struct kv {
+	pthread_mutex_t lock;
+
 	int capacity;
 	int size;
 	element * elements;

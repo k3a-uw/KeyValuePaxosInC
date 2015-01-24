@@ -1,9 +1,11 @@
 
 /*
  ============================================================================
- Name        : keyvalue.c
- Author      : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
- Version     : 2015.01.18
+ Name         : keyvalue.c
+ Author       : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
+ Version      : 2015.01.24
+ Modifications: Added a pthread_mutex_t to the struct and lock and unlock the
+              : lock whenever something is read, or written to the struct.
  ============================================================================
  */
 
@@ -32,6 +34,9 @@ kv * kv_new()
 	kv * p_list = (kv *) malloc(sizeof(kv));
 
 	if (p_list == NULL)
+		return NULL;
+
+	if (pthread_mutex_init(&(p_list->lock), NULL) != 0)
 		return NULL;
 
 	// INITIALIZE STRUCT VALUES
@@ -64,12 +69,16 @@ kv * kv_new()
  ******************************************************************************/
 int kv_expand(kv * the_kv)
 {
+	pthread_mutex_lock(&(the_kv->lock));
 	int new_capacity = the_kv->capacity * 2;
 
 	element * new_elements = (element *) malloc(sizeof(element) * new_capacity);
 
 	if (new_elements == NULL)
+	{
+		pthread_mutex_unlock(&(the_kv->lock));
 		return MEMORY_ALLOCATION_ERROR;
+	}
 
 	// INITIALIZE new_elements;
 	for(int i = 0; i < new_capacity; i++)
@@ -95,6 +104,7 @@ int kv_expand(kv * the_kv)
 	free(the_kv->elements);
 	the_kv->capacity = new_capacity;
 	the_kv->elements = new_elements;
+	pthread_mutex_unlock(&(the_kv->lock));
 
 	return 0;
 }
@@ -109,15 +119,19 @@ int kv_expand(kv * the_kv)
 int kv_get(kv * the_kv, int key, int * value)
 {
 	//LOOK TO SEE IF THE KEY EXISTS AND IF SO, GET ITS INDEX
+	pthread_mutex_lock(&(the_kv->lock));
 
 	int result = kv_exists(the_kv, key);
 	if (result != -1)
 	{
 		*value = the_kv->elements[result].value;
+		pthread_mutex_unlock(&(the_kv->lock));
 		return 0;
 	} else {
+		pthread_mutex_unlock(&(the_kv->lock));
 		return -1;
 	}
+
 }
 
 /*******************************************************************************
@@ -130,9 +144,11 @@ int kv_get(kv * the_kv, int key, int * value)
  ******************************************************************************/
 int kv_put(kv * the_kv, int key , int value)
 {
+	pthread_mutex_lock(&(the_kv->lock));
 
 	if(key == -1 || kv_exists(the_kv, key) != -1)
 	{
+		pthread_mutex_unlock(&(the_kv->lock));
 		return -1;
 	}
 	else
@@ -146,6 +162,7 @@ int kv_put(kv * the_kv, int key , int value)
 		the_kv->elements[first_slot].key = key;
 		the_kv->elements[first_slot].value = value;
 		the_kv->size++;
+		pthread_mutex_unlock(&(the_kv->lock));
 		return 0;
 	}
 
@@ -180,7 +197,6 @@ int kv_exists(kv * the_kv, int key)
 			return i;
 		}
 	}
-
 	return -1;
 }
 
@@ -192,14 +208,18 @@ int kv_exists(kv * the_kv, int key)
  ******************************************************************************/
 int kv_del(kv* the_kv, int key)
 {
+	pthread_mutex_lock(&(the_kv->lock));
+
 	int results = kv_exists(the_kv, key);
 
 	if(results != -1)
 	{
 		the_kv->elements[results].key = -1;
 		the_kv->size--;
+		pthread_mutex_unlock(&(the_kv->lock));
 		return 0;
 	} else {
+		pthread_mutex_unlock(&(the_kv->lock));
 		return -1;
 	}
 }
@@ -297,7 +317,7 @@ char *substring(char *string, int position, int length)
    if (pointer == NULL)
    {
       printf("Unable to allocate memory.\n");
-//      exit(-1);
+      exit(-1);
    }
 
    for (c = 0 ; c < position -1 ; c++)
@@ -321,6 +341,7 @@ char *substring(char *string, int position, int length)
  ******************************************************************************/
 void kv_print(kv* the_kv)
 {
+	pthread_mutex_lock(&(the_kv->lock));
 	printf("The KV currently has %d elements and %d capacity.\n",the_kv->size, the_kv->capacity);
 	printf("The elements are as follows\n");
 	for (int i = 0; i < the_kv->capacity; i++)
@@ -330,4 +351,7 @@ void kv_print(kv* the_kv)
 		else
 			printf("[%d]\tKey: %d\tValue: %d\n", i, the_kv->elements[i].key, the_kv->elements[i].value);
 	}
+
+	pthread_mutex_unlock(&(the_kv->lock));
+
 }
