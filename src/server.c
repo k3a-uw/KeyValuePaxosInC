@@ -312,14 +312,19 @@ void *MessageAgent(void* args)
 {
 	char message[128] = "";
 	char client[128]  = "";
-	printf("%d is running!\n", args);
+	char response[128] = "";
+	int result;
+	printf("%d is running!\n", (int) args);
 
 	// SIMPLE WHILE LOOP. POLL QUEUE UNTIL SOMETHING ARRIVES.
 	while(1)
 	{
-		printf("%d is running!\n", args);
-//		if(mq_pull(mq, message, client) >= 0)  // WHEN SOMETHING ARRIVES, HANDLE IT.
-//			server_read_and_respond(message, client);
+		printf("%d is running!\n", (int) args);
+		if(mq_pull(mq, message, client) >= 0)  // WHEN SOMETHING ARRIVES, HANDLE IT.
+		{
+			result = server_handle_message(message, response);  //PARSE THE MESSAGE AND GENERATE A RESPONSE MESSAGE
+			mq_push(sq, response, client);  // ADD IT TO THE RESPONSE QUEUE
+		}
 
 	}
 
