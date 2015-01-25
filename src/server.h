@@ -13,7 +13,7 @@
 #define SERVER_H
 #define MAXPENDING 5    /* Maximum outstanding connection requests */
 #define BUFFSIZE 128    /* The size of the incoming and outgoing messages.*/
-
+#define THREAD_COUNT 10
 
 #ifndef _STDIO_H_
   #include <stdio.h>
@@ -55,6 +55,14 @@
 #include "log.h"
 #endif
 
+#ifndef _PTHREAD_H
+#include <pthread.h>
+#endif
+
+#ifndef MESSAGEQUEUE_H
+#include "messagequeue.h"
+#endif
+
 /******************************************
  * LAUNCHES A TCP SERVER TO LISTEN ON THE *
  * PORT PROVIDED.  RUNS UNTIL PROCES IS   *
@@ -79,7 +87,7 @@ int server_udp_init(unsigned short port_num);
  * THE RESPONSE WILL BE STORED IN THE     *
  * BUFFER PROVIDED.                       *
  *****************************************/
-int server_handle_message(kv* kv_store, char* msg, char* response);
+int server_handle_message(char* msg, char* response);
 
 
 /**********************************
@@ -87,6 +95,24 @@ int server_handle_message(kv* kv_store, char* msg, char* response);
  * AND EXIST THE PROGRAM          *
  *********************************/
 void ServerErrorHandle(char *errorMessage);
+
+
+/***********************************
+ * AN AGENT FOR A THREAD THAT WILL *
+ * CHECK THE QUEUE FOR ACTION AND  *
+ * PERFORM IT IF NECESSARY         *
+ ***********************************
+ */
+void *MessageAgent(void* mq);
+
+/******************************************
+ * A HELPER METHOD TO INTERPRET THE COMMAND
+ * AND RESPOND AS NECCESSARY
+ *****************************************/
+void server_read_and_respond(char* message, char* client);
+
+void server_respond(char* message, char* client);
+
 
 
 #endif /* SRC_SERVER_H_ */
