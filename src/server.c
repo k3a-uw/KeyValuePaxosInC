@@ -17,13 +17,14 @@ kv* kv_store;
 messagequeue* mq;  // monitored by agents, populated by server
 messagequeue* sq;  // populated by agents, monitored by server
 
-char* server_rpc_proc(char * message)
+char* server_rpc_proc(indata)
+	unsigned long *indata;
 {
-	printf("The message was! %s\n", message);
-	char * to_return;
+	printf("Indata is %d.\n", *indata);
 
-	strcpy(to_return, message);
-	return &to_return;
+	unsigned long ret = 2 * (*indata);
+
+	return ((char *) &ret);
 }
 
 
@@ -42,13 +43,13 @@ int server_rpc_init(unsigned short port_num)
 		pthread_create(&thread[i], NULL, MessageAgent, i);
 	}
 
-	printf("Registering RPC...");
-	registerrpc(1,1,1, server_rpc_proc, xdr_string, xdr_string);
+	printf("Registering RPC...\n");
+	registerrpc(1234,123,12, server_rpc_proc, xdr_u_long, xdr_u_long);
 
-	printf("Running the RPC_Service");
+	printf("Running the RPC_Service...\n");
 	svc_run();
 
-	printf("Exiting due to svc_run failure.\n"); // svc_runs forever.
+	printf("Exiting due to svc_run failure....\n"); // svc_runs forever.
 
 		//ON MESSAGE, ADD IT TO QUEUE
 		//mq_push(mq, message, client);
@@ -324,12 +325,12 @@ void *MessageAgent(void* args)
 	char client[128]  = "";
 	char response[128] = "";
 	int result;
-	printf("%d is running!\n", (int) args);
+	printf("%d Has Started!\n", (int) args);
 
 	// SIMPLE WHILE LOOP. POLL QUEUE UNTIL SOMETHING ARRIVES.
 	while(1)
 	{
-		printf("%d is running!\n", (int) args);
+//		printf("%d is running!\n", (int) args);
 		if(mq_pull(mq, message, client) >= 0)  // WHEN SOMETHING ARRIVES, HANDLE IT.
 		{
 			result = server_handle_message(message, response);  //PARSE THE MESSAGE AND GENERATE A RESPONSE MESSAGE
