@@ -13,6 +13,30 @@
 #include "client.h"
 #endif
 
+
+
+
+
+int client_rpc_init(char* hostname)
+{
+	printf("You are running the RPC Client connecting to hostname => %s\n", hostname);
+
+	char response[BUFFSIZE];
+	int status;
+
+	status = callrpc(hostname,   //host
+				NULL,      // program number
+				NULL,		// version number
+				NULL,		//process number
+				xdr_string,  // message datatype
+				"Message",   // as message
+				xdr_string,  // response datatype
+				&response
+				);
+}
+
+
+
 /********************************************************
  *  LAUNCHES A SCRIPT THAT COMMUNICATES WITH THE SERVER *
  *  INDICATED, OVER THE PORT_NUMBER PROVIDED.  CALLS    *

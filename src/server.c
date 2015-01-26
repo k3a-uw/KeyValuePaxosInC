@@ -17,6 +17,16 @@ kv* kv_store;
 messagequeue* mq;  // monitored by agents, populated by server
 messagequeue* sq;  // populated by agents, monitored by server
 
+char* server_rpc_proc(char * message)
+{
+	printf("The message was! %s\n", message);
+	char * to_return;
+
+	strcpy(to_return, message);
+	return &to_return;
+}
+
+
 int server_rpc_init(unsigned short port_num)
 {
 
@@ -29,15 +39,16 @@ int server_rpc_init(unsigned short port_num)
 	pthread_t thread[THREAD_COUNT];
 	for(int i = 0; i < THREAD_COUNT ; i++)
 	{
-		pthread_create(&thread[i], NULL, MessageAgent, (void*)i);
+		pthread_create(&thread[i], NULL, MessageAgent, i);
 	}
 
-	//	LOOP THROUGH LISTENING FOR CONNECTIONS.
-	while(1)
-	{
-		//NEED TO WRITE THE CODE FOR LISTENING IN FOR RPC CONNECTIONS
-		printf("Main Thread is running too!\n");
+	printf("Registering RPC...");
+	registerrpc(1,1,1, server_rpc_proc, xdr_string, xdr_string);
 
+	printf("Running the RPC_Service");
+	svc_run();
+
+	printf("Exiting due to svc_run failure.\n"); // svc_runs forever.
 
 		//ON MESSAGE, ADD IT TO QUEUE
 		//mq_push(mq, message, client);
@@ -46,7 +57,6 @@ int server_rpc_init(unsigned short port_num)
 		//READ FORM THE MESSAGE QUEUE AND SEND RESPONSES TO CLIENT
 		//if (mq_pull(sq, response, res_client) >= 0)  {  //SEND A RESPONSE TO THE CLIENT }
 		//server_rpc_respond(response, res_client);
-	}
 
 }
 

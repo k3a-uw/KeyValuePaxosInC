@@ -15,37 +15,18 @@
 #define BUFFSIZE 128    /* The size of the incoming and outgoing messages.*/
 #define THREAD_COUNT 10
 
-#ifndef _STDIO_H_
-  #include <stdio.h>
-#endif
-
-#ifndef _STDLIB_H_
-  #include <stdlib.h>
-#endif
-
-#ifndef _SYS_SOCKET_H_
-  #include <sys/socket.h> /* for socket(), bind(), and connect() */
-#endif
-
-#ifndef _ARPA_INET_H_
-  #include <arpa/inet.h>  /* for sockaddr_in and inet_ntoa() */
-#endif
-
-#ifndef _STRING_H_
-  #include <string.h>     /* for memset() */
-#endif
-
-#ifndef _SYS_TYPES_H
-  #include <sys/types.h>
-#endif
-
-#ifndef _NETDB_H_
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/socket.h> /* for socket(), bind(), and connect() */
+#include <arpa/inet.h>  /* for sockaddr_in and inet_ntoa() */
+#include <string.h>     /* for memset() */
+#include <sys/types.h>
 #include <netdb.h>
-#endif
-
-#ifndef _UNISTD_H_
 #include <unistd.h>
-#endif
+#include <pthread.h>
+#include <rpc/rpc.h>
+#include <utmp.h>
+
 
 #ifndef KEYVALUE_H
   #include "keyvalue.h"
@@ -55,9 +36,6 @@
 #include "log.h"
 #endif
 
-#ifndef _PTHREAD_H
-#include <pthread.h>
-#endif
 
 #ifndef MESSAGEQUEUE_H
 #include "messagequeue.h"

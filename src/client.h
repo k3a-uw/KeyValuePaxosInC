@@ -11,37 +11,16 @@
 #define CLIENT_H
 
 
-#ifndef _STDIO_H_
-  #include <stdio.h>
-#endif
-
-#ifndef _SYS_TYPES_H_
-  #include <sys/types.h>
-#endif
-
-#ifndef _SYS_SOCKET_H_
-  #include <sys/socket.h>
-#endif
-
-#ifndef _NETINET_IN_H_
-  #include <netinet/in.h>
-#endif
-
-#ifndef INET_H
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include <arpa/inet.h>
-#endif
-
-#ifndef _STLIB_H_
-  #include <stdlib.h>
-#endif
-
-#ifndef _STRING_H_
-  #include <string.h>
-#endif
-
-#ifndef _STDLIB_H_
-  #include <stdlib.h>
-#endif
+#include <stdlib.h>
+#include <string.h>
+#include <stdlib.h>
+#include <rpc/rpc.h>
+#include <utmp.h>
 
 #ifndef BUFFSIZE
   #define BUFFSIZE 128
