@@ -43,7 +43,7 @@ int server_rpc_init(unsigned short port_num)
 	}
 
 	printf("Registering RPC...");
-	registerrpc(1,1,1, server_rpc_proc, xdr_string, xdr_string);
+	registerrpc(1234,123,12, server_rpc_proc, xdr_string, xdr_string);
 
 	printf("Running the RPC_Service");
 	svc_run();
@@ -324,12 +324,12 @@ void *MessageAgent(void* args)
 	char client[128]  = "";
 	char response[128] = "";
 	int result;
-	printf("%d is running!\n", (int) args);
+	printf("%d is Has Started!\n", (int) args);
 
 	// SIMPLE WHILE LOOP. POLL QUEUE UNTIL SOMETHING ARRIVES.
 	while(1)
 	{
-		printf("%d is running!\n", (int) args);
+//		printf("%d is running!\n", (int) args);
 		if(mq_pull(mq, message, client) >= 0)  // WHEN SOMETHING ARRIVES, HANDLE IT.
 		{
 			result = server_handle_message(message, response);  //PARSE THE MESSAGE AND GENERATE A RESPONSE MESSAGE

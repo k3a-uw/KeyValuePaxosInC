@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <rpc/rpc.h>
 #include <utmp.h>
-
 #ifndef BUFFSIZE
   #define BUFFSIZE 128
 #endif
