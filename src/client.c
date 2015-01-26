@@ -22,17 +22,24 @@ int client_rpc_init(char* hostname)
 	printf("You are running the RPC Client connecting to hostname => %s\n", hostname);
 
 	char response[BUFFSIZE];
-	int status;
 
+	int status;
+	unsigned long tmpResponse;
+	unsigned long message = 18;
+
+
+	printf("Calling to RPC...\n");
 	status = callrpc(hostname,   //host
-				NULL,      // program number
-				NULL,		// version number
-				NULL,		//process number
-				xdr_string,  // message datatype
-				"Message",   // as message
-				xdr_string,  // response datatype
-				&response
+				1234,      // program number
+				123,		// version number
+				12,		//process number
+				xdr_u_long,  // message datatype
+				&message,   // as message
+				xdr_u_long,  // response datatype
+				&tmpResponse
 				);
+	printf("Status = %d", status);
+	printf("Response = %d\n", tmpResponse);
 }
 
 

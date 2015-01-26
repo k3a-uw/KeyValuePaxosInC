@@ -53,9 +53,9 @@ int main(int argc, char * argv[])
 				break;
 			case '3':
 				if (argc > 2)
-					printf("Sorry the client isn't built yet for RPC\n");
+					client_rpc_init(hostname);
 				else
-					server_rpc_init(port_num);
+					server_rpc_init();
 				break;
 			case 'Q':
 			case 'q':
