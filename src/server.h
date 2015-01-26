@@ -13,39 +13,20 @@
 #define SERVER_H
 #define MAXPENDING 5    /* Maximum outstanding connection requests */
 #define BUFFSIZE 128    /* The size of the incoming and outgoing messages.*/
+#define THREAD_COUNT 10
 
-
-#ifndef _STDIO_H_
-  #include <stdio.h>
-#endif
-
-#ifndef _STDLIB_H_
-  #include <stdlib.h>
-#endif
-
-#ifndef _SYS_SOCKET_H_
-  #include <sys/socket.h> /* for socket(), bind(), and connect() */
-#endif
-
-#ifndef _ARPA_INET_H_
-  #include <arpa/inet.h>  /* for sockaddr_in and inet_ntoa() */
-#endif
-
-#ifndef _STRING_H_
-  #include <string.h>     /* for memset() */
-#endif
-
-#ifndef _SYS_TYPES_H
-  #include <sys/types.h>
-#endif
-
-#ifndef _NETDB_H_
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/socket.h> /* for socket(), bind(), and connect() */
+#include <arpa/inet.h>  /* for sockaddr_in and inet_ntoa() */
+#include <string.h>     /* for memset() */
+#include <sys/types.h>
 #include <netdb.h>
-#endif
-
-#ifndef _UNISTD_H_
 #include <unistd.h>
-#endif
+#include <pthread.h>
+#include <rpc/rpc.h>
+#include <utmp.h>
+
 
 #ifndef KEYVALUE_H
   #include "keyvalue.h"
@@ -53,6 +34,11 @@
 
 #ifndef LOG_H
 #include "log.h"
+#endif
+
+
+#ifndef MESSAGEQUEUE_H
+#include "messagequeue.h"
 #endif
 
 /******************************************
@@ -79,7 +65,7 @@ int server_udp_init(unsigned short port_num);
  * THE RESPONSE WILL BE STORED IN THE     *
  * BUFFER PROVIDED.                       *
  *****************************************/
-int server_handle_message(kv* kv_store, char* msg, char* response);
+int server_handle_message(char* msg, char* response);
 
 
 /**********************************
@@ -87,6 +73,24 @@ int server_handle_message(kv* kv_store, char* msg, char* response);
  * AND EXIST THE PROGRAM          *
  *********************************/
 void ServerErrorHandle(char *errorMessage);
+
+
+/***********************************
+ * AN AGENT FOR A THREAD THAT WILL *
+ * CHECK THE QUEUE FOR ACTION AND  *
+ * PERFORM IT IF NECESSARY         *
+ ***********************************
+ */
+void *MessageAgent(void* mq);
+
+/******************************************
+ * A HELPER METHOD TO INTERPRET THE COMMAND
+ * AND RESPOND AS NECCESSARY
+ *****************************************/
+void server_read_and_respond(char* message, char* client);
+
+void server_respond(char* message, char* client);
+
 
 
 #endif /* SRC_SERVER_H_ */

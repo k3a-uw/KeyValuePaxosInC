@@ -13,6 +13,55 @@
 #include "server.h"
 #endif
 
+kv* kv_store;
+messagequeue* mq;  // monitored by agents, populated by server
+messagequeue* sq;  // populated by agents, monitored by server
+
+char* server_rpc_proc(char * message)
+{
+	printf("The message was! %s\n", message);
+	char * to_return;
+
+	strcpy(to_return, message);
+	return &to_return;
+}
+
+
+int server_rpc_init(unsigned short port_num)
+{
+
+	// INITIALIZE DATA STRUCTURES.
+	kv_store = kv_new();
+	mq = mq_new();
+	sq = mq_new();
+
+	// STARTUP THE THREADS
+	pthread_t thread[THREAD_COUNT];
+	for(int i = 0; i < THREAD_COUNT ; i++)
+	{
+		pthread_create(&thread[i], NULL, MessageAgent, i);
+	}
+
+	printf("Registering RPC...");
+	registerrpc(1,1,1, server_rpc_proc, xdr_string, xdr_string);
+
+	printf("Running the RPC_Service");
+	svc_run();
+
+	printf("Exiting due to svc_run failure.\n"); // svc_runs forever.
+
+		//ON MESSAGE, ADD IT TO QUEUE
+		//mq_push(mq, message, client);
+
+
+		//READ FORM THE MESSAGE QUEUE AND SEND RESPONSES TO CLIENT
+		//if (mq_pull(sq, response, res_client) >= 0)  {  //SEND A RESPONSE TO THE CLIENT }
+		//server_rpc_respond(response, res_client);
+
+}
+
+
+
 /******************************************
  * LAUNCHES A TCP SERVER TO LISTEN ON THE *
  * PORT PROVIDED.  RUNS UNTIL PROCES IS   *
@@ -24,7 +73,8 @@ int server_tcp_init(unsigned short port_num)
 	printf("You are running TCP Server on port number: %d.\n", port_num);
 
 	// CREATE A NEW KEY VALUE STORE
-	kv* kv_store = kv_new();
+
+	kv_store = kv_new();
 
     struct sockaddr_in server;
 
@@ -91,7 +141,7 @@ int server_tcp_init(unsigned short port_num)
 			{
 				log_write("server.log", client_name->h_name, client_ip, port_num, buf, 1);
 				bzero(response, BUFFSIZE);
-				result = server_handle_message(kv_store, buf, response);
+				result = server_handle_message(buf, response);
 				n = send(client_sock, response, BUFFSIZE,0);
 				if (n < 0)
 					printf("Responding Failed\n"); //ServerErrorHandle("write failed: ");
@@ -116,7 +166,7 @@ int server_udp_init(unsigned short port_num)
 	printf("You are running UDP Server on port number: %d.\n", port_num);
 
 	// CREATE A NEW KEY VALUE STORE
-	kv* kv_store = kv_new();
+	kv_store = kv_new();
 
     struct sockaddr_in server;
 
@@ -170,7 +220,7 @@ int server_udp_init(unsigned short port_num)
 
 			// PROCESS THE MESSAGE
 			bzero(response, BUFFSIZE);
-			int result = server_handle_message(kv_store, buf, response);
+			int result = server_handle_message(buf, response);
 
 			// RESPOND WITH RESULTS
 			n = sendto(sock, response, BUFFSIZE, 0, (struct sockaddr *) &client, client_len);
@@ -193,7 +243,7 @@ int server_udp_init(unsigned short port_num)
  * THE RESPONSE WILL BE STORED IN THE     *
  * BUFFER PROVIDED.                       *
  *****************************************/
-int server_handle_message(kv* kv_store, char* msg, char* response)
+int server_handle_message(char* msg, char* response)
 {
 	int command = 0;
 	int key = 0;
@@ -249,3 +299,44 @@ void ServerErrorHandle(char *errorMessage) /* Error handling function */
 	perror(errorMessage);
 	exit(-1);
 }
+
+
+void server_read_and_respond(char* message, char* client)
+{
+	char response[BUFFSIZE];
+	bzero(response, BUFFSIZE);
+	int result = server_handle_message(message, response);
+
+	if (result >= 0)  // WE HAVE A SUCCESSFUL RESULT SO RESPOND TO THE CLIENT
+		server_respond(response, client);
+}
+
+void server_respond(char* message, char* client)
+{
+	//TODO SEND RESPONSE CODE
+
+}
+
+
+void *MessageAgent(void* args)
+{
+	char message[128] = "";
+	char client[128]  = "";
+	char response[128] = "";
+	int result;
+	printf("%d is running!\n", (int) args);
+
+	// SIMPLE WHILE LOOP. POLL QUEUE UNTIL SOMETHING ARRIVES.
+	while(1)
+	{
+		printf("%d is running!\n", (int) args);
+		if(mq_pull(mq, message, client) >= 0)  // WHEN SOMETHING ARRIVES, HANDLE IT.
+		{
+			result = server_handle_message(message, response);  //PARSE THE MESSAGE AND GENERATE A RESPONSE MESSAGE
+			mq_push(sq, response, client);  // ADD IT TO THE RESPONSE QUEUE
+		}
+
+	}
+
+}
+
