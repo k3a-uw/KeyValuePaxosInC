@@ -13,20 +13,34 @@
 #include "server.h"
 #endif
 
+#include <rpc/rpc.h>
+
+#ifndef XDRCONV_H
+#include "xdrconv.h"
+#endif
+
+
 kv* kv_store;
 messagequeue* mq;  // monitored by agents, populated by server
 messagequeue* sq;  // populated by agents, monitored by server
 
-char* server_rpc_proc(indata)
-	unsigned long *indata;
+/*******************************************************
+ * THE OPERATIONS RUN BY REGISTERED RPC					*
+ * ID NO: ??											*
+ ******************************************************/
+struct msgRpc * server_rpc_proc(indata)
+	struct msgRpc *indata;
 {
-	printf("Indata is %d.\n", *indata);
 
-	unsigned long ret = 2 * (*indata);
+	printf("Received message with Key is %d.\n", indata->key );
+	printf("Received message with Value is %d.\n", indata->value );
 
-	return ((char *) &ret);
+	// some get / put / delete operation
+	struct msgRpc outdata;
+	outdata.value=5000;
+
+	return &outdata;
 }
-
 
 int server_rpc_init(unsigned short port_num)
 {
@@ -44,9 +58,12 @@ int server_rpc_init(unsigned short port_num)
 	}
 
 	printf("Registering RPC...\n");
-	registerrpc(1234,123,12, server_rpc_proc, xdr_u_long, xdr_u_long);
 
-	printf("Running the RPC_Service...\n");
+	int status;
+	status=registerrpc(1234,123,12, server_rpc_proc, xdr_rpc, &xdr_rpc);
+	if(status=0)
+		printf("Service no %d registered sucessfully.");
+
 	svc_run();
 
 	printf("Exiting due to svc_run failure....\n"); // svc_runs forever.
@@ -58,7 +75,6 @@ int server_rpc_init(unsigned short port_num)
 		//READ FORM THE MESSAGE QUEUE AND SEND RESPONSES TO CLIENT
 		//if (mq_pull(sq, response, res_client) >= 0)  {  //SEND A RESPONSE TO THE CLIENT }
 		//server_rpc_respond(response, res_client);
-
 }
 
 

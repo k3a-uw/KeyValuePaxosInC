@@ -13,33 +13,36 @@
 #include "client.h"
 #endif
 
-
-
+#ifndef XDRCONV_H
+#include "xdrconv.h"
+#endif
 
 
 int client_rpc_init(char* hostname)
 {
 	printf("You are running the RPC Client connecting to hostname => %s\n", hostname);
-
-	char response[BUFFSIZE];
-
 	int status;
-	unsigned long tmpResponse;
-	unsigned long message = 18;
+
+	struct msgRpc msg;
+	struct msgRpc res;
+
+	msg.key=3;
+	msg.value=300;
+
+	status = callrpc(hostname,   //host
+					1234,      // program number
+					123,		// version number
+					12,		//process number
+					xdr_rpc,  // message datatype
+					&msg,   // as message
+					xdr_rpc,  // response datatype
+					&res
+					);
 
 
 	printf("Calling to RPC...\n");
-	status = callrpc(hostname,   //host
-				1234,      // program number
-				123,		// version number
-				12,		//process number
-				xdr_u_long,  // message datatype
-				&message,   // as message
-				xdr_u_long,  // response datatype
-				&tmpResponse
-				);
-	printf("Status = %d", status);
-	printf("Response = %d\n", tmpResponse);
+	printf("Returning value = %d\n", res.value);
+
 }
 
 
