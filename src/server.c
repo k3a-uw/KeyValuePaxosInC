@@ -46,6 +46,9 @@ struct msgRpc * server_rpc_proc(indata)
 
 xdrMsg * server_rpc_get(xdrMsg * indata)
 {
+	char s_command[BUFFSIZE];
+	sprintf(s_command, "GET=%d", indata->key);
+	log_write("server.log", "unknown (RPC)", "(unknown RPC)", 0, s_command, 1);
 	xdrMsg outdata;
 	int value;
 	int result = kv_get(kv_store, indata->key, &value);
@@ -58,13 +61,18 @@ xdrMsg * server_rpc_get(xdrMsg * indata)
 		outdata.key = -1;
 		outdata.value = 0;
 	}
-
+	sprintf(s_command,"Key=%d,Value=%d", outdata.key, outdata.value);
+	log_write("server.log", "unknown (RPC)", "unknown (RPC)", 0, s_command, 0 );
 	return(&outdata);
 
 }
 
 xdrMsg * server_rpc_put(xdrMsg * indata)
 {
+	char s_command[BUFFSIZE];
+	sprintf(s_command, "PUT Key=%d Value=%d", indata->key, indata->value);
+	log_write("server.log", "unknown (RPC)", "(unknown RPC)", 0, s_command, 1);
+
 	xdrMsg outdata;
 	int result = kv_put(kv_store, indata->key, indata->value);
 
@@ -77,12 +85,19 @@ xdrMsg * server_rpc_put(xdrMsg * indata)
 		outdata.value = 0;
 	}
 
+	sprintf(s_command,"Key=%d,Value=%d", outdata.key, outdata.value);
+	log_write("server.log", "unknown (RPC)", "unknown (RPC)", 0, s_command, 0 );
+
 	return(&outdata);
 
 }
 
 xdrMsg * server_rpc_del(xdrMsg * indata)
 {
+	char s_command[BUFFSIZE];
+	sprintf(s_command, "DEL=%d", indata->key);
+	log_write("server.log", "unknown (RPC)", "(unknown RPC)", 0, s_command, 1);
+
 	xdrMsg outdata;
 	int result = kv_del(kv_store, indata->key);
 
@@ -94,6 +109,9 @@ xdrMsg * server_rpc_del(xdrMsg * indata)
 		outdata.key = -1;
 		outdata.value = result;
 	}
+
+	sprintf(s_command,"Key=%d,Value=%d", outdata.key, outdata.value);
+	log_write("server.log", "unknown (RPC)", "unknown (RPC)", 0, s_command, 0 );
 
 	return(&outdata);
 }
@@ -108,17 +126,17 @@ int server_rpc_init(unsigned short port_num)
 
 	printf("Registering RPC...\n");
 
-	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_PUT, server_rpc_proc, xdr_rpc, &xdr_rpc);
+	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_PUT, server_rpc_put, xdr_rpc, &xdr_rpc);
 
 	if(status = 0)
 		printf("PUT FAILED TO REGISTER");
 
-	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_GET, server_rpc_proc, xdr_rpc, &xdr_rpc);
+	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_GET, server_rpc_get, xdr_rpc, &xdr_rpc);
 
 	if(status = 0)
 		printf("GET FAILED TO REGISTER");
 
-	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_DEL, server_rpc_proc, xdr_rpc, &xdr_rpc);
+	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_DEL, server_rpc_del, xdr_rpc, &xdr_rpc);
 
 	if(status = 0)
 		printf("DEL FAILED TO REGISTER");
