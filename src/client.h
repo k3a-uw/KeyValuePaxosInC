@@ -25,6 +25,11 @@
   #define BUFFSIZE 128
 #endif
 
+#ifndef XDRCONV_H
+  #include "xdrconv.h"
+#endif
+
+
 #ifndef LOG_H
   #include "log.h"
 #endif
@@ -58,5 +63,9 @@ void getMessages(char* messages[]);
  * SYSTEM WITH AN ERROR CODE OF -1           *
  ********************************************/
 void ClientErrorHandle(char* errormessage);
+
+void getRPCCommands(int* commands);
+
+void getRPCMessages(xdrMsg * messages);
 
 #endif
