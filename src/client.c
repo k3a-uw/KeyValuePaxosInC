@@ -13,9 +13,46 @@
 #include "client.h"
 #endif
 
-#ifndef XDRCONV_H
-#include "xdrconv.h"
-#endif
+
+int client_rpc_send(char* hostname, int command, xdrMsg * message, xdrMsg * response)
+{
+	char s_command[BUFFSIZE];
+	switch (command)
+	{
+	case RPC_PUT:
+		sprintf(s_command, "PUT|Key=%d|Value=%d", message->key, message->value);
+		break;
+	case RPC_GET:
+		sprintf(s_command, "GET|Key=%d", message->key);
+		break;
+	case RPC_DEL:
+		sprintf(s_command, "DEL|Key=%d", message->key);
+		break;
+	default:
+		sprintf(s_command, "Bad Command: Not sent.");
+		break;
+	}
+
+
+	log_write("client.log", hostname, hostname, 0, s_command, 0);
+
+	int status = callrpc(hostname,
+						RPC_PROG_NUM,
+						RPC_PROC_VER,
+						command,
+						xdr_rpc,
+						message,
+						xdr_rpc,
+						response);
+	if (status < 0)
+		sprintf(s_command, "Receive Failed!");
+	else
+		sprintf(s_command, "Key=%d|Value=%d",response->key, response->value);
+
+	log_write("client.log", hostname, hostname, 0, s_command, 1);
+	return status;
+
+}
 
 
 int client_rpc_init(char* hostname)
@@ -23,46 +60,26 @@ int client_rpc_init(char* hostname)
 	printf("You are running the RPC Client connecting to hostname => %s\n", hostname);
 	int status;
 
-	struct msgRpc msg;
-	struct msgRpc res;
+	xdrMsg response;
 
-	msg.key=3;
-	msg.value=300;
+	xdrMsg messages[15];
 
+	printf("Do i get here?\n?");
+	getRPCMessages(messages);
 
-	//CALL PUT
-	status = callrpc(hostname,
-					RPC_PROG_NUM,
-					RPC_PROC_VER,
-					RPC_PUT,
-					xdr_rpc,
-					&msg,
-					xdr_rpc,
-					&res);
+	printf("Do i get here?\n?");
+	int commands[15];
+	getRPCCommands(commands);
 
-	if (status == 0 & res.key == 0)
+	printf("Commands = %d\n", commands[0]);
+	for(int i = 0; i < 15; i++)
 	{
-		printf("Message Sent Successfully!\n");
-	} else {
-		printf("There was an error");
+		status = client_rpc_send(hostname, commands[i], &messages[i], &response);
+		if (status < 0)
+			printf("Message failed!\n");
 	}
 
-	//CALL GET
-	status = callrpc(hostname,
-					RPC_PROG_NUM,
-					RPC_PROC_VER,
-					RPC_GET,
-					xdr_rpc,
-					&msg,
-					xdr_rpc,
-					&res);
-
-	if (status == 0 & res.key == 0)
-	{
-		printf("The value of %d is %d!\n", msg.key, res.value);
-	} else {
-		printf("There was an error!");
-	}
+	printf("Messages Completed!");
 
 
 }
@@ -226,6 +243,53 @@ void getMessages(char* messages[])
 
 	return;
 }
+
+void getRPCMessages(xdrMsg* messages)
+{
+	messages[0].key = 1;
+	messages[0].value = 100;
+	messages[1].key = 1;
+	messages[1].value = 200;
+	messages[2].key = 2;
+	messages[2].value = 300;
+	messages[3].key = 1;
+	messages[4].key = 3;
+	messages[5].key = 2;
+	messages[6].key = 2;
+	messages[7].key = 3;
+	messages[7].value = 999;
+	messages[8].key = 3;
+	messages[9].key = 3;
+	messages[10].key = 9;
+	messages[11].key = 999;
+	messages[11].value = 1234;
+	messages[12].key = 999;
+	messages[13].key = 999;
+	messages[14].key = 999;
+
+	return;
+
+}
+
+void getRPCCommands(int* commands)
+{
+	commands[0] = RPC_PUT;
+	commands[1] = RPC_PUT;
+	commands[2] = RPC_PUT;
+	commands[3] = RPC_GET;
+	commands[4] = RPC_GET;
+	commands[5] = RPC_DEL;
+	commands[6] = RPC_GET;
+	commands[7] = RPC_PUT;
+	commands[8] = RPC_DEL;
+	commands[9] = RPC_GET;
+	commands[10] = RPC_DEL;
+	commands[11] = RPC_PUT;
+	commands[12] = RPC_GET;
+	commands[13] = RPC_DEL;
+	commands[14] = RPC_DEL;
+
+	}
 
 /*********************************************
  * WRITES ERROR TO THE CONSOLE AND EXITS THE *
