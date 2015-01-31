@@ -64,10 +64,8 @@ int client_rpc_init(char* hostname)
 
 	xdrMsg messages[15];
 
-	printf("Do i get here?\n?");
 	getRPCMessages(messages);
 
-	printf("Do i get here?\n?");
 	int commands[15];
 	getRPCCommands(commands);
 
@@ -75,11 +73,13 @@ int client_rpc_init(char* hostname)
 	for(int i = 0; i < 15; i++)
 	{
 		status = client_rpc_send(hostname, commands[i], &messages[i], &response);
+		if(response.key == -1)
+			printf("Action cannot be completed.\n");
 		if (status < 0)
 			printf("Message failed!\n");
 	}
 
-	printf("Messages Completed!");
+	printf("Messages Completed!\n\n\n");
 
 
 }
