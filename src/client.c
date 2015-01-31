@@ -29,19 +29,41 @@ int client_rpc_init(char* hostname)
 	msg.key=3;
 	msg.value=300;
 
-	status = callrpc(hostname,   //host
-					1234,      // program number
-					123,		// version number
-					12,		//process number
-					xdr_rpc,  // message datatype
-					&msg,   // as message
-					xdr_rpc,  // response datatype
-					&res
-					);
 
+	//CALL PUT
+	status = callrpc(hostname,
+					RPC_PROG_NUM,
+					RPC_PROC_VER,
+					RPC_PUT,
+					xdr_rpc,
+					&msg,
+					xdr_rpc,
+					&res);
 
-	printf("Calling to RPC...\n");
-	printf("Returning value = %d\n", res.value);
+	if (status == 0 & res.key == 0)
+	{
+		printf("Message Sent Successfully!\n");
+	} else {
+		printf("There was an error");
+	}
+
+	//CALL GET
+	status = callrpc(hostname,
+					RPC_PROG_NUM,
+					RPC_PROC_VER,
+					RPC_GET,
+					xdr_rpc,
+					&msg,
+					xdr_rpc,
+					&res);
+
+	if (status == 0 & res.key == 0)
+	{
+		printf("The value of %d is %d!\n", msg.key, res.value);
+	} else {
+		printf("There was an error!");
+	}
+
 
 }
 

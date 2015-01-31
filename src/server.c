@@ -42,27 +42,86 @@ struct msgRpc * server_rpc_proc(indata)
 	return &outdata;
 }
 
+
+
+xdrMsg * server_rpc_get(xdrMsg * indata)
+{
+	xdrMsg outdata;
+	int value;
+	int result = kv_get(kv_store, indata->key, &value);
+
+	if (result == 0)
+	{
+		outdata.key = 0;
+		outdata.value = value;
+	} else {
+		outdata.key = -1;
+		outdata.value = 0;
+	}
+
+	return(&outdata);
+
+}
+
+xdrMsg * server_rpc_put(xdrMsg * indata)
+{
+	xdrMsg outdata;
+	int result = kv_put(kv_store, indata->key, indata->value);
+
+	if (result == 0)
+	{
+		outdata.key = 0;
+		outdata.value = result;
+	} else {
+		outdata.key = -1;
+		outdata.value = 0;
+	}
+
+	return(&outdata);
+
+}
+
+xdrMsg * server_rpc_del(xdrMsg * indata)
+{
+	xdrMsg outdata;
+	int result = kv_del(kv_store, indata->key);
+
+	if (result == 0)
+	{
+		outdata.key = 0;
+		outdata.value = result;
+	} else {
+		outdata.key = -1;
+		outdata.value = result;
+	}
+
+	return(&outdata);
+}
+
+
 int server_rpc_init(unsigned short port_num)
 {
 
 	// INITIALIZE DATA STRUCTURES.
+	int status;
 	kv_store = kv_new();
-	mq = mq_new();
-	sq = mq_new();
-
-	// STARTUP THE THREADS
-	pthread_t thread[THREAD_COUNT];
-	for(int i = 0; i < THREAD_COUNT ; i++)
-	{
-		pthread_create(&thread[i], NULL, MessageAgent, i);
-	}
 
 	printf("Registering RPC...\n");
 
-	int status;
-	status=registerrpc(1234,123,12, server_rpc_proc, xdr_rpc, &xdr_rpc);
-	if(status=0)
-		printf("Service no %d registered sucessfully.");
+	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_PUT, server_rpc_proc, xdr_rpc, &xdr_rpc);
+
+	if(status = 0)
+		printf("PUT FAILED TO REGISTER");
+
+	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_GET, server_rpc_proc, xdr_rpc, &xdr_rpc);
+
+	if(status = 0)
+		printf("GET FAILED TO REGISTER");
+
+	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_DEL, server_rpc_proc, xdr_rpc, &xdr_rpc);
+
+	if(status = 0)
+		printf("DEL FAILED TO REGISTER");
 
 	svc_run();
 
