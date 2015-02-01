@@ -77,7 +77,7 @@ int validateCommandLine(int argc, char * argv[], char* hostname, unsigned short*
 	int i;
 	if (argc <= 1) //NOT ENOUGH
 	{
-		printf("Usage: (for Server) main port  |  (for client) main server_ip_or_hostname port.\n");
+		printf("USAGE:\n\t tcss558 [hostname|ipaddress] portnum \nEXAMPLE:\n\t To run the client software provide the port number AND the server name: (e.g. tcss558 192.168.1.10 7777) \n\t To run the server software, only provided the port number (e.g. tcss558 7777).");
 		exit(-1);
 	} else if (argc == 2) {  // CLIENT STUFF
 		i = 1;
