@@ -37,10 +37,6 @@
 #endif
 
 
-#ifndef MESSAGEQUEUE_H
-#include "messagequeue.h"
-#endif
-
 /******************************************
  * LAUNCHES A TCP SERVER TO LISTEN ON THE *
  * PORT PROVIDED.  RUNS UNTIL PROCES IS   *

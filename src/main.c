@@ -14,10 +14,6 @@
 #include "main.h"
 #endif
 
-#ifndef MESSAGEQUEUE_H
-#include "messagequeue.h"
-#endif
-
 void testQueue();
 
 /*******************************************************
@@ -148,42 +144,42 @@ void printMenu(int argc)
 
 
 
-void testQueue()
-{
-	messagequeue* mq = mq_new();
-	int err;
-	char response[128];
-	char client[128];
-	mq_print(mq);
-
-	printf("Putting First Message\n");
-	mq_push(mq, "First Message", "localhost");
-
-	err = mq_pull(mq, response, client);
-	printf("The response was:  %s\n", response);
-
-	printf("Putting World\n");
-	mq_push(mq, "World!", "localhost");
-
-	mq_print(mq);
-
-	printf("Putting this\n");
-	mq_push(mq, "this", "localhost");
-
-	printf("Putting is working!\n");
-	mq_push(mq, "is working!", "localhost");
-
-	mq_print(mq);
-
-	err = mq_pull(mq, response, client);
-	printf("The response was:  %s\n", response);
-
-	err = mq_pull(mq, response, client);
-	printf("The response was:  %s\n", response);
-
-	err = mq_pull(mq, response, client);
-	printf("The response was:  %s\n", response);
-
-	mq_print(mq);
-
-}
+//void testQueue()
+//{
+//	messagequeue* mq = mq_new();
+//	int err;
+//	char response[128];
+//	char client[128];
+//	mq_print(mq);
+//
+//	printf("Putting First Message\n");
+//	mq_push(mq, "First Message", "localhost");
+//
+//	err = mq_pull(mq, response, client);
+//	printf("The response was:  %s\n", response);
+//
+//	printf("Putting World\n");
+//	mq_push(mq, "World!", "localhost");
+//
+//	mq_print(mq);
+//
+//	printf("Putting this\n");
+//	mq_push(mq, "this", "localhost");
+//
+//	printf("Putting is working!\n");
+//	mq_push(mq, "is working!", "localhost");
+//
+//	mq_print(mq);
+//
+//	err = mq_pull(mq, response, client);
+//	printf("The response was:  %s\n", response);
+//
+//	err = mq_pull(mq, response, client);
+//	printf("The response was:  %s\n", response);
+//
+//	err = mq_pull(mq, response, client);
+//	printf("The response was:  %s\n", response);
+//
+//	mq_print(mq);
+//
+//}

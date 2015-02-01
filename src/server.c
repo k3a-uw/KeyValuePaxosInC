@@ -21,8 +21,6 @@
 
 
 kv* kv_store;
-messagequeue* mq;  // monitored by agents, populated by server
-messagequeue* sq;  // populated by agents, monitored by server
 
 /*******************************************************
  * THE OPERATIONS RUN BY REGISTERED RPC					*
@@ -412,24 +410,25 @@ void server_respond(char* message, char* client)
 }
 
 
-void *MessageAgent(void* args)
-{
-	char message[128] = "";
-	char client[128]  = "";
-	char response[128] = "";
-	int result;
-	printf("%d Has Started!\n", (int) args);
-	// SIMPLE WHILE LOOP. POLL QUEUE UNTIL SOMETHING ARRIVES.
-	while(1)
-	{
-//		printf("%d is running!\n", (int) args);
-		if(mq_pull(mq, message, client) >= 0)  // WHEN SOMETHING ARRIVES, HANDLE IT.
-		{
-			result = server_handle_message(message, response);  //PARSE THE MESSAGE AND GENERATE A RESPONSE MESSAGE
-			mq_push(sq, response, client);  // ADD IT TO THE RESPONSE QUEUE
-		}
-
-	}
-
-}
+// NO LONGER REQUIRE MESSAGE AGENTS BECAUSE WE ARE USING RPC
+//void *MessageAgent(void* args)
+//{
+//	char message[128] = "";
+//	char client[128]  = "";
+//	char response[128] = "";
+//	int result;
+//	printf("%d Has Started!\n", (int) args);
+//	// SIMPLE WHILE LOOP. POLL QUEUE UNTIL SOMETHING ARRIVES.
+//	while(1)
+//	{
+////		printf("%d is running!\n", (int) args);
+//		if(mq_pull(mq, message, client) >= 0)  // WHEN SOMETHING ARRIVES, HANDLE IT.
+//		{
+//			result = server_handle_message(message, response);  //PARSE THE MESSAGE AND GENERATE A RESPONSE MESSAGE
+//			mq_push(sq, response, client);  // ADD IT TO THE RESPONSE QUEUE
+//		}
+//
+//	}
+//
+//}
 
