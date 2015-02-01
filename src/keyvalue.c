@@ -3,7 +3,7 @@
  ============================================================================
  Name         : keyvalue.c
  Author       : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
- Version      : 2015.01.24
+ Version      : 2015.02.1
  Modifications: Added a pthread_mutex_t to the struct and lock and unlock the
               : lock whenever something is read, or written to the struct.
  ============================================================================
@@ -307,6 +307,13 @@ int kv_parser(char* message, int* ret_command, int* ret_key, int* ret_value)
 
 }
 
+/*********************************************
+ * A SIMPLE HELPER FUNCTION TO GRAB ONLY     *
+ * PARTS OF STRINGS. ACCEPTS THE STARTING    *
+ * POSITION AND THE LENGTH OF THE SUBSTTRING *
+ * DESIRED.                                  *
+ *********************************************
+ */
 char *substring(char *string, int position, int length)
 {
    char *pointer;

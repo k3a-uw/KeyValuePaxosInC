@@ -13,20 +13,13 @@
 #include "server.h"
 #endif
 
-#include <rpc/rpc.h>
-
-#ifndef XDRCONV_H
-#include "xdrconv.h"
-#endif
-
-
 kv* kv_store;
 
 /*******************************************************
- * THE OPERATIONS RUN BY REGISTERED RPC					*
- * ID NO: ??											*
+ * GENERIC FUNCTION FOR RESPONDING TO RPC CALLS.  NOT  *
+ * USED IN THE PUT/GET/DELETE VERSION OF THIS CODE.    *
  ******************************************************/
-struct msgRpc * server_rpc_proc(indata)
+xdrMsg * server_rpc_proc(indata)
 	struct msgRpc *indata;
 {
 
@@ -41,7 +34,11 @@ struct msgRpc * server_rpc_proc(indata)
 }
 
 
-
+/********************************************************
+ * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR GETTING *
+ * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE     *
+ * MESSAGE PROVIDED BY THE RPC CALLER.                  *
+ *******************************************************/
 xdrMsg * server_rpc_get(xdrMsg * indata)
 {
 	char s_command[BUFFSIZE];
@@ -65,6 +62,11 @@ xdrMsg * server_rpc_get(xdrMsg * indata)
 
 }
 
+/********************************************************
+ * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR PUTTING *
+ * A VALUE INTO THE KEY VALUE STORE.  INDATA IS THE     *
+ * MESSAGE PROVIDED BY THE RPC CALLER.                  *
+ *******************************************************/
 xdrMsg * server_rpc_put(xdrMsg * indata)
 {
 	char s_command[BUFFSIZE];
@@ -90,6 +92,11 @@ xdrMsg * server_rpc_put(xdrMsg * indata)
 
 }
 
+/*********************************************************
+ * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR DELETING *
+ * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE      *
+ * MESSAGE PROVIDED BY THE RPC CALLER.                   *
+ *******************************************************/
 xdrMsg * server_rpc_del(xdrMsg * indata)
 {
 	char s_command[BUFFSIZE];
@@ -114,8 +121,12 @@ xdrMsg * server_rpc_del(xdrMsg * indata)
 	return(&outdata);
 }
 
-
-int server_rpc_init(unsigned short port_num)
+/********************************************************
+ * THE FUNCTION CALLED BY THE MAIN MENU THAT SETSUP THE *
+ * RPC FUNCTIONS AND BEGINS TO LISTEN FOR INCOMING      *
+ * MEESAGES. DOES NOT RETURN.                           *
+ *******************************************************/
+int server_rpc_init()
 {
 
 	// INITIALIZE DATA STRUCTURES.
@@ -391,44 +402,3 @@ void ServerErrorHandle(char *errorMessage) /* Error handling function */
 	perror(errorMessage);
 	exit(-1);
 }
-
-
-void server_read_and_respond(char* message, char* client)
-{
-	char response[BUFFSIZE];
-	bzero(response, BUFFSIZE);
-	int result = server_handle_message(message, response);
-
-	if (result >= 0)  // WE HAVE A SUCCESSFUL RESULT SO RESPOND TO THE CLIENT
-		server_respond(response, client);
-}
-
-void server_respond(char* message, char* client)
-{
-	//TODO SEND RESPONSE CODE
-
-}
-
-
-// NO LONGER REQUIRE MESSAGE AGENTS BECAUSE WE ARE USING RPC
-//void *MessageAgent(void* args)
-//{
-//	char message[128] = "";
-//	char client[128]  = "";
-//	char response[128] = "";
-//	int result;
-//	printf("%d Has Started!\n", (int) args);
-//	// SIMPLE WHILE LOOP. POLL QUEUE UNTIL SOMETHING ARRIVES.
-//	while(1)
-//	{
-////		printf("%d is running!\n", (int) args);
-//		if(mq_pull(mq, message, client) >= 0)  // WHEN SOMETHING ARRIVES, HANDLE IT.
-//		{
-//			result = server_handle_message(message, response);  //PARSE THE MESSAGE AND GENERATE A RESPONSE MESSAGE
-//			mq_push(sq, response, client);  // ADD IT TO THE RESPONSE QUEUE
-//		}
-//
-//	}
-//
-//}
-

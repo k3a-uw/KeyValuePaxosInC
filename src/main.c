@@ -2,7 +2,7 @@
  ============================================================================
  Name        : main.c
  Author      : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
- Version     : 2015.01.18
+ Version     : 2015.02.1
  Description : 2 methods of use:  main servername port   or main port
              : if a servername is provided, the program will assume to launch
              : the server.  The user will be prompted to indicate the desired
@@ -13,8 +13,6 @@
 #ifndef MAIN_H
 #include "main.h"
 #endif
-
-void testQueue();
 
 /*******************************************************
  * DETERMINES SERVER OR CLIENT BASED ON ARGUMENTS AND  *
@@ -77,7 +75,7 @@ int validateCommandLine(int argc, char * argv[], char* hostname, unsigned short*
 	int i;
 	if (argc <= 1) //NOT ENOUGH
 	{
-		printf("USAGE:\n\t tcss558 [hostname|ipaddress] portnum \nEXAMPLE:\n\t To run the client software provide the port number AND the server name: (e.g. tcss558 192.168.1.10 7777) \n\t To run the server software, only provided the port number (e.g. tcss558 7777).");
+		printf("USAGE:\n\t tcss558 [hostname|ipaddress] portnum \nEXAMPLE:\n\t To run the client software provide the port number AND the server name: (e.g. tcss558 192.168.1.10 7777) \n\t To run the server software, only provided the port number (e.g. tcss558 7777).\n\n");
 		exit(-1);
 	} else if (argc == 2) {  // CLIENT STUFF
 		i = 1;
@@ -141,45 +139,3 @@ void printMenu(int argc)
 
 	printf("Please Choose a protocol:\n  1. UDP\n  2. TCP\n  3. RPC\n  Q. Quit \n>> ");
 }
-
-
-
-//void testQueue()
-//{
-//	messagequeue* mq = mq_new();
-//	int err;
-//	char response[128];
-//	char client[128];
-//	mq_print(mq);
-//
-//	printf("Putting First Message\n");
-//	mq_push(mq, "First Message", "localhost");
-//
-//	err = mq_pull(mq, response, client);
-//	printf("The response was:  %s\n", response);
-//
-//	printf("Putting World\n");
-//	mq_push(mq, "World!", "localhost");
-//
-//	mq_print(mq);
-//
-//	printf("Putting this\n");
-//	mq_push(mq, "this", "localhost");
-//
-//	printf("Putting is working!\n");
-//	mq_push(mq, "is working!", "localhost");
-//
-//	mq_print(mq);
-//
-//	err = mq_pull(mq, response, client);
-//	printf("The response was:  %s\n", response);
-//
-//	err = mq_pull(mq, response, client);
-//	printf("The response was:  %s\n", response);
-//
-//	err = mq_pull(mq, response, client);
-//	printf("The response was:  %s\n", response);
-//
-//	mq_print(mq);
-//
-//}

@@ -1,21 +1,23 @@
 /*
- * xdrconv.c
- *
- *  Created on: Jan 28, 2015
- *      Author: daniel
+ ============================================================================
+ Name        : xdrconv.c
+ Author      : Daniel Kristiyanto <danielkr@uw.edu>
+ Version     : 2015.01.28
+ Description : Converts the messages passed between client and server into
+             : An XDR transmission.
+ ============================================================================
  */
+
 #ifndef XDRCONV_H
 #include "xdrconv.h"
 #endif
 
-// XDR CONVERSION
 
 /*******************************************************
  * USER-DEFINED EXTERNAL DATA REPRESENTATION 			*
  * FOR RPC COMMUNICATION BETWEEN CLIENT AND SERVER		*
  * FOR THE xdrMSG DATA TYPE 							*
  ******************************************************/
-
 int xdr_rpc(xdr, content)
 	XDR *xdr;
 	struct msgRpc *content;

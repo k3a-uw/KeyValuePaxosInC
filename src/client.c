@@ -13,7 +13,15 @@
 #include "client.h"
 #endif
 
-
+/*******************************************************
+ * SENDS A MESSAGE/COMMAND TO THE SERVER PROVIDED AS   *
+ * HOSTNAME.  THE RESPONSE FROM THE SERVER IS STORED   *
+ * IN THE ADDRESS PROVIDED IN THE VARIABLE 'RESPONSE'  *
+ * IF THE COMMAND IS POORLY FORMED, NO MESSAGE WILL    *
+ * BE TRANSMITTED.  THIS FUNCTION ALSO MANAGES CALLING *
+ * THE LOG_WRITE FUNCTION TO ENSURE TRANSACTIONS ARE   *
+ * WRITTEN TO LOG FILES.                               *
+ ******************************************************/
 int client_rpc_send(char* hostname, int command, xdrMsg * message, xdrMsg * response)
 {
 	char s_command[BUFFSIZE];
@@ -30,6 +38,8 @@ int client_rpc_send(char* hostname, int command, xdrMsg * message, xdrMsg * resp
 		break;
 	default:
 		sprintf(s_command, "Bad Command: Not sent.");
+		log_write("client.log", hostname, hostname, 0, s_command, 0);
+		return(-1);
 		break;
 	}
 
@@ -54,7 +64,13 @@ int client_rpc_send(char* hostname, int command, xdrMsg * message, xdrMsg * resp
 
 }
 
-
+/***********************************************
+ * CALLED BY THE MAIN FUNCTION AND INITIALIZES *
+ * COMMUNICATION WITH THE SERVER PROVIDED AS   *
+ * HOSTNAME.  THIS MEANS SIMPLY SETTING UP A   *
+ * LIST OF COMMANDS AND MAKING CALLS TO        *
+ * CLIENT_RPC_SEND                             *
+ **********************************************/
 int client_rpc_init(char* hostname)
 {
 	printf("You are running the RPC Client connecting to hostname => %s\n", hostname);
@@ -213,7 +229,7 @@ int client_tcp_init(char* hostname, unsigned short port_num)
 }
 
 /*****************************************************
- * RETURNS A CHAR* ARRAY THAT CONTAINTS A SERIES OF  *
+ * SAVES A CHAR* ARRAY THAT CONTAINTS A SERIES OF    *
  * MESSAGES THAT ARE TO BE SENT TO THE SERVER        *
  * **************************************************/
 void getMessages(char* messages[])
@@ -244,6 +260,12 @@ void getMessages(char* messages[])
 	return;
 }
 
+/************************************************
+ * SAVES AN ARRAY OF MESSAGES TO BE SENT TO THE *
+ * SERVER AS A DEMO OF THE SYSTEM WORKING       *
+ * AND IS TO BE USED IN CONJUNCTION WITH THE    *
+ * FUNCTION GETRPCCOMMANDS.                     *
+ ***********************************************/
 void getRPCMessages(xdrMsg* messages)
 {
 	messages[0].key = 1;
@@ -271,6 +293,12 @@ void getRPCMessages(xdrMsg* messages)
 
 }
 
+/************************************************
+ * SAVES AN ARRAY OF COMMANDS TO BE SENT TO THE *
+ * SERVER AS A DEMO OF THE SYSTEM WORKING       *
+ * AND IS TO BE USED IN CONJUNCTION WITH THE    *
+ * FUNCTION GETRPCMESSAGES.                     *
+ ***********************************************/
 void getRPCCommands(int* commands)
 {
 	commands[0] = RPC_PUT;
@@ -295,7 +323,7 @@ void getRPCCommands(int* commands)
  * WRITES ERROR TO THE CONSOLE AND EXITS THE *
  * SYSTEM WITH AN ERROR CODE OF -1           *
  ********************************************/
-void ClientErrorHandle(char *errorMessage) /* Error handling function */
+void ClientErrorHandle(char *errorMessage)
 {
 	perror(errorMessage);
 	exit(-1);
