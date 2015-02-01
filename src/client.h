@@ -100,3 +100,6 @@ void getRPCCommands(int* commands);
  * SYSTEM WITH AN ERROR CODE OF -1           *
  ********************************************/
 void ClientErrorHandle(char *errorMessage);
+
+
+#endif
