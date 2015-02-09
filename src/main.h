@@ -58,6 +58,6 @@ int validatePort(char* arg);
  * TO BE A CLIENT CONNECTION.  THE     *
  * ADDITIONAL ARGUMENTS ARE IGNORED    *
  * ************************************/
-void printMenu(int argc);
+int printMenu(int argc);
 
 #endif /* MAIN_H */
