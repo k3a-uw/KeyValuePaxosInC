@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <rpc/rpc.h>
 #include <utmp.h>
+#include <sys/utsname.h>
 
 
 #ifndef KEYVALUE_H

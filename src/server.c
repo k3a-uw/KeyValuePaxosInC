@@ -15,6 +15,7 @@
 
 kv* kv_store;
 char* servers[5];
+char myname[1024];
 
 
 /********************************************************
@@ -232,6 +233,11 @@ xdrMsg * server_rpc_del(xdrMsg * indata)
  *******************************************************/
 int server_rpc_init()
 {
+	struct utsname unameData;
+	uname(&unameData);
+
+	strcpy(myname, unameData.nodename);
+	printf("The host name is: %s\n",myname);
 
 	// INITIALIZE DATA STRUCTURES.
 	int status;
