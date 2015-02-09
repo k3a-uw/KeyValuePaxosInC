@@ -14,24 +14,7 @@
 #endif
 
 kv* kv_store;
-
-/*******************************************************
- * GENERIC FUNCTION FOR RESPONDING TO RPC CALLS.  NOT  *
- * USED IN THE PUT/GET/DELETE VERSION OF THIS CODE.    *
- ******************************************************/
-xdrMsg * server_rpc_proc(indata)
-	struct msgRpc *indata;
-{
-
-	printf("Received message with Key is %d.\n", indata->key );
-	printf("Received message with Value is %d.\n", indata->value );
-
-	// some get / put / delete operation
-	struct msgRpc outdata;
-	outdata.value=5000;
-
-	return &outdata;
-}
+char* servers[5];
 
 
 /********************************************************
@@ -69,26 +52,136 @@ xdrMsg * server_rpc_get(xdrMsg * indata)
  *******************************************************/
 xdrMsg * server_rpc_put(xdrMsg * indata)
 {
+	// APPLY LOCK TO OUR KEY
+	kv_set_lock_status(kv_store, indata->key, KV_LOCKED);
+
+	// SEND PREPARE TO COMMIT TO ALL SERVERS  (WHEN A SERVER RECEIVED A 'PREPARE TO COMMIT, THEY APPLY A LOCK)
+	xdrMsg * message;
+	xdrMsg * response;
+
+	message->key    = indata->key;
+	message->value  = indata->value;
+	message->status = PREPARE;
+
+	// tell all servers to prepare! (this will be a loop)
+	int status = callrpc(servers[0],
+						RPC_PROG_NUM,
+						RPC_PROC_VER,
+						RPC_2PC,
+						xdr_rpc,
+						message,
+						xdr_rpc,
+						response);
+
+
+	xdrMsg * outdata;
+
+	if (status < 0)
+	{
+		printf("Received Failed!");
+	}
+
+	// IF NACK IS RECEIVED, THEN ABORT (SEND MESSAGE TO CLIENT SAYING "FAIL!")
+	if (response->status == NACK)
+	{
+		//ABORT!  tell all servers to abort.
+		outdata->status = FAILURE;
+	}
+
+	 // WAIT FOR RESPONSE FROM ALL SERVERS
+//	   if (response < 4)
+		   // send 4 aborts!
+		   //return failure;
+//	   else
+
+
+
+// IF ALL RESPONSES ARE YES
+// APPLY CHANGE LOCALLY
+	int result = kv_put(kv_store, indata->key, indata->value);
+
+// SEND "COMMIT"  (SPIN UP 4 THREADS AND CALL RPC_COMMIT)
+	message->status = COMMIT_PUT;
+	status = callrpc(servers[0],
+						RPC_PROG_NUM,
+						RPC_PROC_VER,
+						RPC_2PC,
+						xdr_rpc,
+						message,
+						xdr_rpc,
+						response);
+
+	if (status < 0)
+		printf("COMMIT RESPONSE FAILED");
+
+	// WAIT FOR "OK" AND RECORD OKAY TO THE LOG.
+	if(response->status == OK)
+		  // join(threads)
+	  // RETURN WHEN ALL OK ARE RECEIVED.
+	  // RELEASE LOCK.
+	kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
+
 	char s_command[BUFFSIZE];
 	sprintf(s_command, "PUT Key=%d Value=%d", indata->key, indata->value);
 	log_write("server.log", "unknown (RPC)", "(unknown RPC)", 0, s_command, 1);
 
-	xdrMsg outdata;
-	int result = kv_put(kv_store, indata->key, indata->value);
-
-	if (result == 0)
-	{
-		outdata.key = 0;
-		outdata.value = result;
-	} else {
-		outdata.key = -1;
-		outdata.value = 0;
-	}
-
-	sprintf(s_command,"Key=%d,Value=%d", outdata.key, outdata.value);
-	log_write("server.log", "unknown (RPC)", "unknown (RPC)", 0, s_command, 0 );
+//	xdrMsg outdata;
+//	int result = kv_put(kv_store, indata->key, indata->value);
+//
+//	if (result == 0)
+//	{
+//		outdata.key = 0;
+//		outdata.value = result;
+//	} else {
+//		outdata.key = -1;
+//		outdata.value = 0;
+//	}
+//
+//	sprintf(s_command,"Key=%d,Value=%d", outdata.key, outdata.value);
+//	log_write("server.log", "unknown (RPC)", "unknown (RPC)", 0, s_command, 0 );
 
 	return(&outdata);
+
+}
+
+xdrMsg * server_rpc_2pc(xdrMsg * indata)
+{
+	xdrMsg * outdata;
+
+	switch(indata->status)
+	{
+	case PREPARE:
+		if (kv_get_lock_status(kv_store, indata->key == KV_LOCKED))
+		{
+			outdata->status = NACK;
+		} else {
+			kv_set_lock_status(kv_store, indata->key, KV_LOCKED);
+			outdata->status = READY;
+		}
+		break;
+
+	case COMMIT_PUT:
+		kv_put(kv_store, indata->key, indata->value);
+		kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
+		outdata->status = OK;
+		break;
+
+	case COMMIT_DEL:
+		kv_del(kv_store, indata->key);
+		outdata->status = OK;
+		break;
+
+	case ABORT:
+		kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
+		outdata->status = OK;
+		break;
+
+	default:
+		outdata->status = NACK;
+		break;
+	}
+
+	return(outdata);
 
 }
 
@@ -99,6 +192,17 @@ xdrMsg * server_rpc_put(xdrMsg * indata)
  *******************************************************/
 xdrMsg * server_rpc_del(xdrMsg * indata)
 {
+
+	// APPLY LOCK TO OUR KEY
+	// SEND PREPARE TO COMMIT TO ALL SERVERS  (WHEN A SERVER RECEIVED A 'PREPARE TO COMMIT, THEY APPLY A LOCK)
+	// WAIT FOR RESPONSE FROM ALL SERVERS
+	// IF NACK IS RECEIVED, THEN ABORT (SEND MESSAGE TO CLIENT SAYING "FAIL!")
+	// IF ALL RESPONSES ARE YES
+	  // APPLY CHANGE LOCALLY
+	  // SEND "COMMIT"  (SPIN UP 4 THREADS AND CALL RPC_COMMIT)
+	  // WAIT FOR "OK" AND RECORD OKAY TO THE LOG.
+	  // RETURN WHEN ALL OK ARE RECEIVED.
+	  // RELEASE LOCK.
 	char s_command[BUFFSIZE];
 	sprintf(s_command, "DEL=%d", indata->key);
 	log_write("server.log", "unknown (RPC)", "(unknown RPC)", 0, s_command, 1);
@@ -133,22 +237,33 @@ int server_rpc_init()
 	int status;
 	kv_store = kv_new();
 
+	servers[0] = "n01";
+	servers[1] = "n02";
+	servers[2] = "n03";
+	servers[3] = "n04";
+	servers[4] = "n05";
+
 	printf("Registering RPC...\n");
 
 	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_PUT, server_rpc_put, xdr_rpc, &xdr_rpc);
 
-	if(status = 0)
+	if(status == 0)
 		printf("PUT FAILED TO REGISTER");
 
 	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_GET, server_rpc_get, xdr_rpc, &xdr_rpc);
 
-	if(status = 0)
+	if(status == 0)
 		printf("GET FAILED TO REGISTER");
 
 	status = registerrpc(RPC_PROG_NUM,RPC_PROC_VER,RPC_DEL, server_rpc_del, xdr_rpc, &xdr_rpc);
 
-	if(status = 0)
+	if(status == 0)
 		printf("DEL FAILED TO REGISTER");
+
+	status = registerrpc(RPC_PROG_NUM, RPC_PROC_VER, RPC_2PC, server_rpc_2pc, xdr_rpc, &xdr_rpc);
+
+	if(status == 0)
+		printf("2PC FAILED TO REGISTER");
 
 	svc_run();
 

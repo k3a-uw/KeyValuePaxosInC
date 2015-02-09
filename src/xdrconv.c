@@ -18,13 +18,15 @@
  * FOR RPC COMMUNICATION BETWEEN CLIENT AND SERVER		*
  * FOR THE xdrMSG DATA TYPE 							*
  ******************************************************/
-int xdr_rpc(xdr, content)
-	XDR *xdr;
-	struct msgRpc *content;
+int xdr_rpc(XDR * xdr, xdrMsg * content)
 {
 		if (!xdr_int(xdr, &content->key))
 		              return (0);
 		if (!xdr_int(xdr, &content->value))
 		              return (0);
+		if (!xdr_int(xdr, &content->status))
+					  return (0);
+
+
 		return (1);
 }
