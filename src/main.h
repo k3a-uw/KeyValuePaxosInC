@@ -9,6 +9,9 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#define MAX_SERVERS      128
+#define HOST_NAME_LENGTH 128
+
 #ifndef CLIENT_H
   #include "client.h"
 #endif
@@ -59,6 +62,5 @@ int validatePort(char* arg);
  * ADDITIONAL ARGUMENTS ARE IGNORED    *
  * ************************************/
 int printMenu(int argc);
-void readServerList();
 
 #endif /* MAIN_H */

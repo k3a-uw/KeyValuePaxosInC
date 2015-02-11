@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <rpc/rpc.h>
 #include <utmp.h>
+#include <ctype.h>
 #ifndef BUFFSIZE
   #define BUFFSIZE 128
 #endif
@@ -53,7 +54,7 @@ int client_rpc_send(char* hostname, int command, xdrMsg * message, xdrMsg * resp
  * LIST OF COMMANDS AND MAKING CALLS TO        *
  * CLIENT_RPC_SEND                             *
  **********************************************/
-int client_rpc_init(char* hostname);
+int client_rpc_init(char** server_list, int server_count);
 
 /********************************************************
  *  LAUNCHES A SCRIPT THAT COMMUNICATES WITH THE SERVER *

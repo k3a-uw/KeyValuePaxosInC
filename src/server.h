@@ -76,7 +76,7 @@ xdrMsg * server_rpc_del(xdrMsg * indata);
  * RPC FUNCTIONS AND BEGINS TO LISTEN FOR INCOMING      *
  * MEESAGES. DOES NOT RETURN.                           *
  *******************************************************/
-int server_rpc_init();
+int server_rpc_init(char** servers, int server_count);
 
 /******************************************
  * LAUNCHES A TCP SERVER TO LISTEN ON THE *

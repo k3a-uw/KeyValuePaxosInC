@@ -13,6 +13,8 @@
 #include "client.h"
 #endif
 
+
+
 /*******************************************************
  * SENDS A MESSAGE/COMMAND TO THE SERVER PROVIDED AS   *
  * HOSTNAME.  THE RESPONSE FROM THE SERVER IS STORED   *
@@ -71,34 +73,239 @@ int client_rpc_send(char* hostname, int command, xdrMsg * message, xdrMsg * resp
  * LIST OF COMMANDS AND MAKING CALLS TO        *
  * CLIENT_RPC_SEND                             *
  **********************************************/
-int client_rpc_init(char* hostname)
+int client_rpc_init(char** servers, int server_count)
 {
-	printf("You are running the RPC Client connecting to hostname => %s\n", hostname);
-	int status;
 
-	xdrMsg response;
+	client_ui(servers, server_count);
 
-	xdrMsg messages[15];
 
-	getRPCMessages(messages);
 
-	int commands[15];
-	getRPCCommands(commands);
+	//	printf("You are running the RPC Client connecting to hostname => %s\n", hostname);
+//	int status;
+//
+//	xdrMsg response;
+//
+//	xdrMsg messages[15];
+//
+//	getRPCMessages(messages);
+//
+//	int commands[15];
+//	getRPCCommands(commands);
+//
+//	printf("Commands = %d\n", commands[0]);
+//	for(int i = 0; i < 15; i++)
+//	{
+//		status = client_rpc_send(hostname, commands[i], &messages[i], &response);
+//		if(response.key == -1)
+//			printf("Action cannot be completed.\n");
+//		if (status < 0)
+//			printf("Message failed!\n");
+//	}
+//
+//	printf("Messages Completed!\n\n\n");
 
-	printf("Commands = %d\n", commands[0]);
-	for(int i = 0; i < 15; i++)
+}
+
+
+
+int client_ui(char** servers, int server_count)
+{
+	char user_input[128];
+	char * command_word;
+	int command = -1;
+	while(command == -1)
 	{
-		status = client_rpc_send(hostname, commands[i], &messages[i], &response);
-		if(response.key == -1)
-			printf("Action cannot be completed.\n");
-		if (status < 0)
-			printf("Message failed!\n");
+		printf("Please Choose a Command:\n  1. GET\n  2. PUT\n  3. DEL\n  Q. Quit\n>> ");
+		fgets(user_input, 128, stdin);
+
+		switch (user_input[0]) {
+			case '1':
+				//GET COMMAND;
+				command = 1;
+				command_word = "Get";
+				break;
+			case '2':
+				//PUT COMMAND;
+				command = 2;
+				command_word = "Put";
+				break;
+			case '3':
+				//DELETE COMMAND;
+				command = 3;
+				command_word = "Delete";
+				break;
+			case 'Q':
+			case 'q':
+				printf("Goodbye!\n");
+				exit(0);
+			default:
+				printf("Invalid Entry, Try Again.");
+
+		}
 	}
 
-	printf("Messages Completed!\n\n\n");
+	int key_command = -1;
+	int key_value;
+	int is_integer;
+	char * toss;
+	while (key_command == -1)
+	{
+		is_integer   =  1;
+		key_value    =  0;
+		printf("Please enter the key (integer) for which you'd like to %s [or q to quit]:\n>> ", command_word);
+		fgets(user_input, 128, stdin);
+
+		if (user_input[0] == 'q')
+		{
+			printf("Goodbye!\n");
+			exit(0);
+		}
+
+		for (int i = 0; i < 128; i++)
+		{
+			if(user_input[i] == '\n')
+			{
+				user_input[i] = '\0';
+				break;
+			}
+		}
+		// CHECK TO ENSURE IT IS AN INTEGER
+		for (int i = 0; i < strlen(user_input); i++)
+		{
+			if(!isdigit(user_input[i]) && user_input[i] != '-')
+			{
+				is_integer = -1;
+				break;
+			}
+		}
+
+		if (is_integer == 1)
+		{
+			key_value = strtol(user_input, &toss, 10);
+			if (key_value == -1)
+			{
+				printf("I'm sorry but -1 is an invalid sentinel key.  Please use another one!");
+			} else {
+				key_command = 1;
+			}
+		}
+
+		if(key_command == -1)
+			printf("Invalid Command, try again.\n\n");
+	}
+
+	int value_command = -1;
+	int value_value   =  -1;
+
+	if (command == 2)  // WE ONLY NEED A VALUE FOR PUTS!
+	{
+		while (value_command == -1)
+		{
+		    is_integer = 1;
+			printf("Please enter a value that you'd like to enter for key %d [or q to quit]:\n>> ", key_value);
+
+			fgets(user_input, 128, stdin);
+
+			if (user_input[0] == 'q')
+			{
+				printf("Goodbye!\n");
+				exit(0);
+			}
+
+			for (int i = 0; i < 128; i++)
+			{
+				if(user_input[i] == '\n')
+				{
+					user_input[i] = '\0';
+					break;
+				}
+			}
+
+			// CHECK TO ENSURE IT IS AN INTEGER
+			for (int i = 0; i < strlen(user_input); i++)
+			{
+				if(!isdigit(user_input[i]))
+				{
+					is_integer = -1;
+					break;
+				}
+			}
+
+
+			if (is_integer == 1)
+			{
+				char *toss;
+				value_value = strtol(user_input, &toss, 10);
+				value_command = 1;
+			}
+
+			if(value_command == -1)
+				printf("Invalid Command, try again.\n\n");
+		}
+	}
+
+	int server_command = -1;
+	int server_value;
+	while (server_command == -1)
+	{
+		is_integer   =  1;
+		server_value    =  0;
+		printf("Please select the server on which to perform the action: \n");
+		for(int i = 0; i < server_count; i++)
+			printf("  %d. %s\n", i+1, servers[i]);
+		printf("\n  Q. Quit\n >> ");
+
+
+		fgets(user_input, 128, stdin);
+
+		if (user_input[0] == 'q')
+		{
+			printf("Goodbye!\n");
+			exit(0);
+		}
+
+		for (int i = 0; i < 128; i++)
+		{
+			if(user_input[i] == '\n')
+			{
+				user_input[i] = '\0';
+				break;
+			}
+		}
+
+		// CHECK TO ENSURE IT IS AN INTEGER
+		for (int i = 0; i < strlen(user_input); i++)
+		{
+			if(!isdigit(user_input[i]))
+			{
+				is_integer = -1;
+				break;
+			}
+		}
+
+		if (is_integer == 1)
+		{
+			server_value = strtol(user_input, &toss, 10);
+
+			if (server_value >= 1 && server_value <= server_count)
+			{
+				server_value = server_value -1;  // get adjust the index!
+				server_command = 1;
+			} else {
+				printf("Invalid Server Entry, try again.");
+			}
+		}
+	}
+
+
+	printf("I'm going to execute a %s with key %d and value %d (if applicable) on server %s.\n", command_word, key_value, value_value, servers[server_value]);
 
 
 }
+
+
+
+
 
 
 
