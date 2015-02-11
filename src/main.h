@@ -39,7 +39,7 @@ int main(int argc, char *argv[]);
  * HOSTNAME AND PORTS ARE STORED AT THE     *
  * ADDRESSES PROVIDED                       *
  * *****************************************/
-int validateCommandLine(int argc, char * argv[], char* hostname, unsigned short* port_num);
+int validateCommandLine(int argc, char * argv[]);
 
 /**************************************
  * VERIFIES THAT THE PORT PROVIDED IS *
@@ -59,5 +59,6 @@ int validatePort(char* arg);
  * ADDITIONAL ARGUMENTS ARE IGNORED    *
  * ************************************/
 int printMenu(int argc);
+void readServerList();
 
 #endif /* MAIN_H */
