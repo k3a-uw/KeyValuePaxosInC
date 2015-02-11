@@ -24,20 +24,20 @@ int main(int argc, char * argv[])
 
 	char* hostname[50];
 	unsigned short port_num;
-	int act;
-	act = validateCommandLine(argc, argv, hostname, &port_num);
+	int actAs;
+	actAs = validateCommandLine(argc, argv);
 
-	//read serverlist.txt
 
 	//run as
-	if(act==1) //server
+	if(actAs==1) //server
 	{
 		//run server code here
 	}
-	else if (act==2) //client
+	else if (actAs==2) //client
 	{
 		while(1){
-			switch(printMenu(1)) //change later
+			int dest = printMenu(1); // Choose the destination server
+			switch(printMenu(2)) //change later
 			{
 			case 1:
 				// PUT
@@ -50,7 +50,7 @@ int main(int argc, char * argv[])
 				break;
 			case 4:
 				// SCRIPTED
-				client_rpc_init(hostname);
+				client_rpc_init("localhost");
 				break;
 			case 5:
 				// QUIT
@@ -114,7 +114,7 @@ int main(int argc, char * argv[])
  * HOSTNAME AND PORTS ARE STORED AT THE     *
  * ADDRESSES PROVIDED                       *
  * *****************************************/
-int validateCommandLine(int argc, char * argv[], char* hostname, unsigned short* port_num)
+int validateCommandLine(int argc, char * argv[])
 {
 	// CHECK THE NUMBER OF ARGUMENTS.  IF ARG = 2 THEN PORT IS ON INDEX 1, OTHERWISE IT IS ON INDEX 2
 	/*
@@ -152,13 +152,13 @@ int validateCommandLine(int argc, char * argv[], char* hostname, unsigned short*
 	if(strcmp(arg,"client")==0)
 	{
 		i=2;
-		printf("Will run as a client");
+		printf("Will run as a client.\n");
 	}
 	else if(strcmp(arg,"server")==0)
 	{
 		i=1;
 		strcpy(arg,argv[1]);
-		printf("Will run as a server");
+		printf("Will run as a server.\n");
 	}
 	else
 	{
@@ -213,18 +213,40 @@ int printMenu(int argc)
 	}
 	printf("Please Choose a protocol:\n  1. UDP\n  2. TCP\n  3. RPC\n  Q. Quit \n>> ");
 	*/
-	return 1;
 
+	int user_input=-1;
 
+	if(argc==1)
+	{
+		int i=0;
+		// Later will be replace with the function to read serverlist.txt
+		char* serverList[5]={"n01","n02","n03","n04","n05"};
+
+		printf("List of available server:\n");
+
+		for(i=0;i<sizeof(serverList);i++)
+			{
+				printf("%i. %s\n", i+1, serverList[i]);
+			}
+		while(!((0<user_input) && (user_input < sizeof(serverList))))
+		{
+		printf("Please select server you like to work with:");
+		//fgets(user_input, 128, stdin);
+		}
+		return user_input;
+	}
 }
 
-int* readServerList(void)
+	/*
+void readServerList()
 {
+
 	int lines_allocated = 128;
 	int max_line_len = 100;
 	int i,j;
 
-	/* Allocate lines of text */
+	// Allocate lines of text
+
 	char **srvList = (char **)malloc(sizeof(char*)*lines_allocated);
 	if (srvList==NULL)
 	{
@@ -241,11 +263,11 @@ int* readServerList(void)
 
 	for (i=0;1;i++)
 	{
-		/* Check allocation */
+		// Check allocation
 		if (i >= lines_allocated)
 		{
 			int new_size;
-			/* Double  allocation and re-allocate */
+			// Double  allocation and re-allocate
 			new_size = lines_allocated*2;
 			srvList = (char **)realloc(srvList,sizeof(char*)*new_size);
 			if (srvList==NULL)
@@ -257,7 +279,7 @@ int* readServerList(void)
 		}
 
 
-		/* Allocate space for the next line */
+		// Allocate space for the next line
 		srvList[i] = malloc(max_line_len);
 		if (srvList[i]==NULL)
 		{
@@ -267,7 +289,7 @@ int* readServerList(void)
 		if (fgets(srvList[i],max_line_len-1,fp)==NULL)
 			break;
 
-		/* Get rid of CR or LF at end of line */
+		// Get rid of CR or LF at end of line
 		for (j=strlen(srvList[i])-1;j>=0 && (srvList[i][j]=='\n' || srvList[i][j]=='\r');j--);
 		srvList[i][j]='\0';
 		}
@@ -276,9 +298,6 @@ int* readServerList(void)
 	    for(j = 0; j < i; j++)
 	        printf("%s\n", srvList[j]);
 
-	    /* Good practice to free memory */
-	    for (;i>=0;i--)
-	        free(srvList[i]);
-	    free(srvList);
-	    return srvList;
+	    //return srvList;
 }
+*/
