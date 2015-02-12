@@ -12,8 +12,8 @@
 
 #include <rpc/rpc.h>
 
-#define RPC_PUT        1
-#define RPC_GET        2
+#define RPC_GET        1
+#define RPC_PUT        2
 #define RPC_DEL        3
 #define RPC_2PC        4
 #define RPC_PROG_NUM   0x20000001
