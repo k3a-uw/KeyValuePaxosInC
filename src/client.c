@@ -100,10 +100,10 @@ int client_ui(char** servers, int server_count) {
 	int status;
 
 	char user_input[128];
-	char * command_word;
-	int command = -1;
+	char command_word[16];
+	int command;
 	while (1) {
-
+		command = -1;
 		while (command == -1) {
 			printf(
 					"Please Choose a Command:\n  1. GET\n  2. PUT\n  3. DEL\n  Q. Quit\n>> ");
@@ -113,17 +113,17 @@ int client_ui(char** servers, int server_count) {
 			case '1':
 				//GET COMMAND;
 				command = RPC_GET;
-				command_word = "Get";
+				strcpy(command_word, "Get");
 				break;
 			case '2':
 				//PUT COMMAND;
 				command = RPC_PUT;
-				command_word = "Put";
+				strcpy(command_word,"Put");
 				break;
 			case '3':
 				//DELETE COMMAND;
 				command = RPC_DEL;
-				command_word = "Delete";
+				strcpy(command_word, "Delete");
 				break;
 			case 'Q':
 			case 'q':
