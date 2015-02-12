@@ -73,9 +73,10 @@ int kv_get_lock_status(kv * the_kv, int key)
 
 int kv_set_lock_status(kv * the_kv, int key, int status)
 {
-	if (kv_exists(the_kv, key) == 1)
+	int index = kv_exists(the_kv,key);
+	if (index >= 0)  // THE KEY EXISTS
 	{
-		the_kv->elements[key].status = status;
+		the_kv->elements[index].status = status;
 		return(0);
 	} else {
 		return(-1);
