@@ -141,39 +141,39 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 xdrMsg * server_rpc_2pc(xdrMsg * indata) {
 	printf("Did I get to the 2PC command!?\n");
 
-	xdrMsg * outdata;
+	xdrMsg outdata = { 0 };
 	switch (indata->status) {
 	case PREPARE:
 		if (kv_get_lock_status(kv_store, indata->key == KV_LOCKED)) {
-			outdata->status = NACK;
+			outdata.status = NACK;
 		} else {
 			kv_set_lock_status(kv_store, indata->key, KV_LOCKED);
-			outdata->status = READY;
+			outdata.status = READY;
 		}
 		break;
 
 	case COMMIT_PUT:
 		kv_put(kv_store, indata->key, indata->value);
 		kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
-		outdata->status = OK;
+		outdata.status = OK;
 		break;
 
 	case COMMIT_DEL:
 		kv_del(kv_store, indata->key);
-		outdata->status = OK;
+		outdata.status = OK;
 		break;
 
 	case ABORT:
 		kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
-		outdata->status = OK;
+		outdata.status = OK;
 		break;
 
 	default:
-		outdata->status = NACK;
+		outdata.status = NACK;
 		break;
 	}
 
-	return (outdata);
+	return (&outdata);
 
 }
 

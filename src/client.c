@@ -95,8 +95,8 @@ int client_rpc_init(char** servers, int server_count) {
 
 int client_ui(char** servers, int server_count) {
 
-	xdrMsg * message;
-	xdrMsg * response;
+	xdrMsg message  = { 0 };
+	xdrMsg response = { 0 };
 	int status;
 
 	char user_input[128];
@@ -273,11 +273,11 @@ int client_ui(char** servers, int server_count) {
 				"I'm going to execute a %s with key %d and value %d (if applicable) on server %s.\n",
 				command_word, key_value, value_value, servers[server_value]);
 
-		message->key = key_value;
-		message->value = value_value;
+		message.key = key_value;
+		message.value = value_value;
 
-		status = client_rpc_send(servers[server_value], command, message,
-				response);
+		status = client_rpc_send(servers[server_value], command, &message,
+				&response);
 
 		if (status < 0)
 			printf("Message failed!\n");
