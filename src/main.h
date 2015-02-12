@@ -9,6 +9,9 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#define MAX_SERVERS      128
+#define HOST_NAME_LENGTH 128
+
 #ifndef CLIENT_H
   #include "client.h"
 #endif
@@ -39,7 +42,7 @@ int main(int argc, char *argv[]);
  * HOSTNAME AND PORTS ARE STORED AT THE     *
  * ADDRESSES PROVIDED                       *
  * *****************************************/
-int validateCommandLine(int argc, char * argv[], char* hostname, unsigned short* port_num);
+int validateCommandLine(int argc, char * argv[]);
 
 /**************************************
  * VERIFIES THAT THE PORT PROVIDED IS *
@@ -58,6 +61,6 @@ int validatePort(char* arg);
  * TO BE A CLIENT CONNECTION.  THE     *
  * ADDITIONAL ARGUMENTS ARE IGNORED    *
  * ************************************/
-void printMenu(int argc);
+int printMenu(int argc);
 
 #endif /* MAIN_H */

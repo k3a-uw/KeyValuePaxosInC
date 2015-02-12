@@ -6,9 +6,7 @@
  */
 
 
-#ifndef MESSAGEQUEUE_H
 #include "messagequeue.h"
-#endif
 
 messagequeue * mq_new()
 {

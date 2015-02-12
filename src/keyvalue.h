@@ -11,6 +11,10 @@
 #ifndef KEYVALUE_H
 #define KEYVALUE_H
 #define KV_DEFAULT_SIZE  8
+#define KV_LOCKED        1
+#define KV_UNLOCKED      0
+#define KV_MISSING      -1
+
 #ifndef MEMORY_ALLOCATION_ERROR
   #define MEMORY_ALLOCATION_ERROR -255
 #endif
@@ -34,15 +38,16 @@
 
 
 
+
 // CREATE A STRUCT FOR HOLDING KEY VALUE PAIRS
 typedef struct element {
 	int key;
 	int value;
+	int status;
 } element;
 
 typedef struct kv {
 	pthread_mutex_t lock;
-
 	int capacity;
 	int size;
 	element * elements;

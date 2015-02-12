@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <rpc/rpc.h>
 #include <utmp.h>
+#include <sys/utsname.h>
 
 
 #ifndef KEYVALUE_H
@@ -36,10 +37,46 @@
 #include "log.h"
 #endif
 
-
-#ifndef MESSAGEQUEUE_H
-#include "messagequeue.h"
+#ifndef XDRCONV_H
+#include "xdrconv.h"
 #endif
+
+
+
+/*******************************************************
+ * GENERIC FUNCTION FOR RESPONDING TO RPC CALLS.  NOT  *
+ * USED IN THE PUT/GET/DELETE VERSION OF THIS CODE.    *
+ ******************************************************/
+xdrMsg * server_rpc_proc(xdrMsg * indata);
+
+/********************************************************
+ * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR GETTING *
+ * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE     *
+ * MESSAGE PROVIDED BY THE RPC CALLER.                  *
+ *******************************************************/
+xdrMsg * server_rpc_get(xdrMsg * indata);
+
+/********************************************************
+ * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR PUTTING *
+ * A VALUE INTO THE KEY VALUE STORE.  INDATA IS THE     *
+ * MESSAGE PROVIDED BY THE RPC CALLER.                  *
+ *******************************************************/
+xdrMsg * server_rpc_put(xdrMsg * indata);
+
+
+/*********************************************************
+ * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR DELETING *
+ * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE      *
+ * MESSAGE PROVIDED BY THE RPC CALLER.                   *
+ *******************************************************/
+xdrMsg * server_rpc_del(xdrMsg * indata);
+
+/********************************************************
+ * THE FUNCTION CALLED BY THE MAIN MENU THAT SETSUP THE *
+ * RPC FUNCTIONS AND BEGINS TO LISTEN FOR INCOMING      *
+ * MEESAGES. DOES NOT RETURN.                           *
+ *******************************************************/
+int server_rpc_init(char** servers, int server_count);
 
 /******************************************
  * LAUNCHES A TCP SERVER TO LISTEN ON THE *
@@ -57,6 +94,7 @@ int server_tcp_init(unsigned short port_num);
  *****************************************/
 int server_udp_init(unsigned short port_num);
 
+
 /******************************************
  * INTERPRETS THE MESSAGE RECEIVED BY THE *
  * SERVER FROM THE CLIENT AND DETERMINES  *
@@ -67,30 +105,10 @@ int server_udp_init(unsigned short port_num);
  *****************************************/
 int server_handle_message(char* msg, char* response);
 
-
 /**********************************
  * WRITES AN ERROR TO THE CONSOLE *
  * AND EXIST THE PROGRAM          *
  *********************************/
 void ServerErrorHandle(char *errorMessage);
-
-
-/***********************************
- * AN AGENT FOR A THREAD THAT WILL *
- * CHECK THE QUEUE FOR ACTION AND  *
- * PERFORM IT IF NECESSARY         *
- ***********************************
- */
-void *MessageAgent(void* mq);
-
-/******************************************
- * A HELPER METHOD TO INTERPRET THE COMMAND
- * AND RESPOND AS NECCESSARY
- *****************************************/
-void server_read_and_respond(char* message, char* client);
-
-void server_respond(char* message, char* client);
-
-
 
 #endif /* SRC_SERVER_H_ */

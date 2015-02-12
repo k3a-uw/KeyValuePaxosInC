@@ -2,7 +2,7 @@
  ============================================================================
  Name        : main.c
  Author      : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
- Version     : 2015.01.18
+ Version     : 2015.02.1
  Description : 2 methods of use:  main servername port   or main port
              : if a servername is provided, the program will assume to launch
              : the server.  The user will be prompted to indicate the desired
@@ -14,12 +14,6 @@
 #include "main.h"
 #endif
 
-#ifndef MESSAGEQUEUE_H
-#include "messagequeue.h"
-#endif
-
-void testQueue();
-
 /*******************************************************
  * DETERMINES SERVER OR CLIENT BASED ON ARGUMENTS AND  *
  * PROMPTS THE USER FOR THE DESIRED PROTOCOL.  IF THE  *
@@ -27,100 +21,60 @@ void testQueue();
  ******************************************************/
 int main(int argc, char * argv[])
 {
+	// FIRST READ THE SERVER FILE
+	int server_count;
+	char** server_list[MAX_SERVERS];
+	for(int i = 0; i < MAX_SERVERS; i++)
+		server_list[i] = malloc(HOST_NAME_LENGTH);
 
-	char* hostname[50];
-	unsigned short port_num;
-	validateCommandLine(argc, argv, hostname, &port_num);
-
-	char user_input[128];  //allow for extra chars to be typed, but ignore them
-	while(1)
+	FILE* fd = fopen("./serverlist.txt","r");
+	if (fd == NULL)
 	{
-		printMenu(argc);
-		fgets(user_input, 128, stdin); //allow for extra chars to be typed
+		printf("Cannot find file serverlist.txt, please create the file and try again.\n");
+		exit(-1);
+	}
 
-		switch (user_input[0]) {
-			case '1':
-				if (argc > 2)
-					client_udp_init(hostname, port_num);
-				else
-					server_udp_init(port_num);
+
+	// BUILD THE STRING OF SERVER NAMES
+	int i = 0;
+	char line[HOST_NAME_LENGTH];
+	while (fgets(line, sizeof(line), fd) && i < MAX_SERVERS)
+	{
+		// TRIM THE STRING -- REPLACE \N WITH \0
+		for(int j = 0; j < strlen(line); j++)
+		{
+			if (line[j] == '\n')
+			{
+				line[j] = '\0';
 				break;
-			case '2':
-				if (argc > 2)
-					client_tcp_init(hostname, port_num);
-				else
-					server_tcp_init(port_num);
-				break;
-			case '3':
-				if (argc > 2)
-					client_rpc_init(hostname);
-				else
-					server_rpc_init();
-				break;
-			case 'Q':
-			case 'q':
-				printf("Goodbye.");
-				exit(0);
-			default:
-				printf("Invalid Entry.  Try again\n");
-				break;
+			}
 		}
+		strcpy(server_list[i], line);
+		i++;
 	}
-}
 
-/********************************************
- * VALIDATES AND EXTRACTS THE HOSTNAME AND  *
- * PORT NUMBER FROM THE COMMAND LINES.  IF  *
- * THE PORT NAME IS BAD, IT WILL RETURN -1  *
- * HOSTNAME AND PORTS ARE STORED AT THE     *
- * ADDRESSES PROVIDED                       *
- * *****************************************/
-int validateCommandLine(int argc, char * argv[], char* hostname, unsigned short* port_num)
-{
-	// CHECK THE NUMBER OF ARGUMENTS.  IF ARG = 2 THEN PORT IS ON INDEX 1, OTHERWISE IT IS ON INDEX 2
-	int i;
-	if (argc <= 1) //NOT ENOUGH
+	server_count = i;
+
+
+	//NOW VALIDATE THE ARGUMENTS AND CALL THE PROPER FUNCTION
+
+	if (argc < 2)  // MUST HAVE AT LEAST ONE ADDITIONAL ARG
 	{
-		printf("Usage: (for Server) main port  |  (for client) main server_ip_or_hostname port.\n");
+		printf("Usage: tcss558 client|server\n");
 		exit(-1);
-	} else if (argc == 2) {  // CLIENT STUFF
-		i = 1;
-		sprintf(hostname, "N/A");
-	} else {
-		i = 2;
-		sprintf(hostname, argv[1]);
+	} else if (strcmp(argv[1],"server") == 0) {
+		printf("Running as Server...\n");
+		server_rpc_init(server_list, server_count);
+	} else if (strcmp(argv[1], "client") == 0) {
+		client_rpc_init(server_list, server_count);
 	}
 
-	//  GET THE PORT NUMBER
-	int port_result = validatePort(argv[i]);
-	if (port_result > 0) {
-		*port_num = (unsigned short) port_result;
-	} else {
-		printf("The port is invalid.  Please provide a port between 1000 and 65534 (inclusive).");
-		exit(-1);
-	}
+
+
 }
 
-/**************************************
- * VERIFIES THAT THE PORT PROVIDED IS *
- * AN INTEGER BETWEEN 65534 AND 100   *
- * INCLUSIVE.  RETURNS 0 IF TRUE, AND *
- * -1 IF FALSE                        *
- *************************************/
-int validatePort(char* arg) {
-	long port_l;
-	unsigned short port;
-	char *toss;
-	port_l = strtol(arg, &toss, 10);
 
-	if (port_l < 65535 && port_l >= 1000)  // we have a good port
-	{
-		return (int) port_l;  //return a valid port number
-	} else {
-		return(-1);
-	}
 
-}
 
 /***************************************
  * DRAWS THE APPROPRIATE MENU BASED ON *
@@ -131,8 +85,9 @@ int validatePort(char* arg) {
  * TO BE A CLIENT CONNECTION.  THE     *
  * ADDITIONAL ARGUMENTS ARE IGNORED    *
  * ************************************/
-void printMenu(int argc)
+int printMenu(int argc)
 {
+	/*
 	if (argc > 2)
 	{
 		printf("Based on the number of arguments [%d] you will launch the CLIENT environment.\n",argc);
@@ -142,48 +97,29 @@ void printMenu(int argc)
 		printf("Usage: (for Server) main port  |  (for client) main server_ip_or_hostname port.\n");
 		exit(-1);
 	}
-
 	printf("Please Choose a protocol:\n  1. UDP\n  2. TCP\n  3. RPC\n  Q. Quit \n>> ");
+	*/
+
+	int user_input=-1;
+
+	if(argc==1)
+	{
+		int i=0;
+		// Later will be replace with the function to read serverlist.txt
+		char* serverList[5]={"n01","n02","n03","n04","n05"};
+
+		printf("List of available server:\n");
+
+		for(i=0;i<sizeof(serverList);i++)
+			{
+				printf("%i. %s\n", i+1, serverList[i]);
+			}
+		while(!((0<user_input) && (user_input < sizeof(serverList))))
+		{
+		printf("Please select server you like to work with:");
+		//fgets(user_input, 128, stdin);
+		}
+		return user_input;
+	}
 }
 
-
-
-void testQueue()
-{
-	messagequeue* mq = mq_new();
-	int err;
-	char response[128];
-	char client[128];
-	mq_print(mq);
-
-	printf("Putting First Message\n");
-	mq_push(mq, "First Message", "localhost");
-
-	err = mq_pull(mq, response, client);
-	printf("The response was:  %s\n", response);
-
-	printf("Putting World\n");
-	mq_push(mq, "World!", "localhost");
-
-	mq_print(mq);
-
-	printf("Putting this\n");
-	mq_push(mq, "this", "localhost");
-
-	printf("Putting is working!\n");
-	mq_push(mq, "is working!", "localhost");
-
-	mq_print(mq);
-
-	err = mq_pull(mq, response, client);
-	printf("The response was:  %s\n", response);
-
-	err = mq_pull(mq, response, client);
-	printf("The response was:  %s\n", response);
-
-	err = mq_pull(mq, response, client);
-	printf("The response was:  %s\n", response);
-
-	mq_print(mq);
-
-}

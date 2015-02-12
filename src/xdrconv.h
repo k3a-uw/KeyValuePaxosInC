@@ -1,37 +1,45 @@
 /*
- * xdrconv.h
- *
- *  Created on: Jan 28, 2015
- *      Author: daniel
+ ============================================================================
+ Name        : xdrconv.c
+ Author      : Daniel Kristiyanto <danielkr@uw.edu>
+ Version     : 2015.01.28
+ Description : Converts the messages passed between client and server into
+             : An XDR transmission.
+ ============================================================================
  */
-
-
-// XDR CONVERSION
-
 #ifndef XDRCONV_H
 #define XDRCONV_H
 
-#define RPC_PUT        1
-#define RPC_GET        2
+#include <rpc/rpc.h>
+
+#define RPC_GET        1
+#define RPC_PUT        2
 #define RPC_DEL        3
+#define RPC_2PC        4
 #define RPC_PROG_NUM   0x20000001
 #define RPC_PROC_VER   1
 
-#include <rpc/rpc.h>
+#define NACK          -1
+#define FAILURE       -2
+#define ABORT         -3
+
+#define COMMIT_PUT     1
+#define COMMIT_DEL     2
+#define PREPARE        3
+#define READY          4
+#define OK             6
 
 
-
-/*******************************************************
+/********************************************************
  * DEFINES THE DATA STRUCTURE FOR MESSAGES				*
  * TRANSMITTED FROM AND TO CLIENT VIA RPC				*
- * 														*
- ******************************************************/
-
+ *******************************************************/
 typedef struct msgRpc{
 	int key;
 	int value;
+	int status;
 } xdrMsg;
 
 int xdr_rpc(XDR* xdr, xdrMsg* content);
 
-#endif /* SRC_XDRCONV_H_ */
+#endif

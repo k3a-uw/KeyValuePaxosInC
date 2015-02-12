@@ -3,7 +3,7 @@
  ============================================================================
  Name         : keyvalue.c
  Author       : Kevin Anderson <k3a@uw.edu> & Daniel Kristiyanto <danielkr@uw.edu>
- Version      : 2015.01.24
+ Version      : 2015.02.1
  Modifications: Added a pthread_mutex_t to the struct and lock and unlock the
               : lock whenever something is read, or written to the struct.
  ============================================================================
@@ -58,6 +58,28 @@ kv * kv_new()
 
 	return p_list;
 
+}
+
+int kv_get_lock_status(kv * the_kv, int key)
+{
+	if (kv_exists(the_kv, key) == 1)
+	{
+		return(the_kv->elements[key].status);
+	} else {
+		return(KV_MISSING);
+	}
+
+}
+
+int kv_set_lock_status(kv * the_kv, int key, int status)
+{
+	if (kv_exists(the_kv, key) == 1)
+	{
+		the_kv->elements[key].status = status;
+		return(0);
+	} else {
+		return(-1);
+	}
 }
 
 /*******************************************************************************
@@ -146,13 +168,17 @@ int kv_put(kv * the_kv, int key , int value)
 {
 	pthread_mutex_lock(&(the_kv->lock));
 
-	if(key == -1 || kv_exists(the_kv, key) != -1)
+
+	if(key == -1) // CANNOT PLACE KEY OF -1, IT IS A SENTINAL KEY
 	{
 		pthread_mutex_unlock(&(the_kv->lock));
 		return -1;
 	}
-	else
-	{
+
+	int location = kv_exists(the_kv, key);
+
+	if (location == -1)
+	{  //INSERT A NEW RECORD
 		//CHECK SIZE AND INCREASE IF NECESSARY
 		if (the_kv->size == the_kv->capacity)
 			kv_expand(the_kv);
@@ -162,9 +188,13 @@ int kv_put(kv * the_kv, int key , int value)
 		the_kv->elements[first_slot].key = key;
 		the_kv->elements[first_slot].value = value;
 		the_kv->size++;
-		pthread_mutex_unlock(&(the_kv->lock));
-		return 0;
+	} else {
+		// REPLACE THE OLD KEY
+			the_kv->elements[location].value = value;
 	}
+
+	pthread_mutex_unlock(&(the_kv->lock));
+	return 0;
 
 }
 
@@ -307,6 +337,13 @@ int kv_parser(char* message, int* ret_command, int* ret_key, int* ret_value)
 
 }
 
+/*********************************************
+ * A SIMPLE HELPER FUNCTION TO GRAB ONLY     *
+ * PARTS OF STRINGS. ACCEPTS THE STARTING    *
+ * POSITION AND THE LENGTH OF THE SUBSTTRING *
+ * DESIRED.                                  *
+ *********************************************
+ */
 char *substring(char *string, int position, int length)
 {
    char *pointer;
