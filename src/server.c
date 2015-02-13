@@ -58,6 +58,7 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 	xdrMsg message = { 0 };
 	xdrMsg response = { 0 };
 	xdrMsg outdata = { 0 };
+
 	int result;
 
 	message.key    = indata->key;
@@ -144,7 +145,7 @@ xdrMsg * server_rpc_2pc(xdrMsg * indata) {
 	xdrMsg outdata = { 0 };
 	switch (indata->status) {
 	case PREPARE:
-		if (kv_get_lock_status(kv_store, indata->key == KV_LOCKED)) {
+		if (kv_get_lock_status(kv_store, indata->key) == KV_LOCKED) {
 			outdata.status = NACK;
 		} else {
 			kv_set_lock_status(kv_store, indata->key, KV_LOCKED);
@@ -159,6 +160,7 @@ xdrMsg * server_rpc_2pc(xdrMsg * indata) {
 		break;
 
 	case COMMIT_DEL:
+		kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
 		kv_del(kv_store, indata->key);
 		outdata.status = OK;
 		break;
