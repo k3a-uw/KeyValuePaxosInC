@@ -21,10 +21,11 @@
  * THE LOG_WRITE FUNCTION TO ENSURE TRANSACTIONS ARE   *
  * WRITTEN TO LOG FILES.                               *
  ******************************************************/
-int client_rpc_send(char* hostname, int command, xdrMsg * message,
-		xdrMsg * response) {
+int client_rpc_send(char* hostname, int command, xdrMsg * message, xdrMsg * response)
+{
 	char s_command[BUFFSIZE];
-	switch (command) {
+	switch (command)
+	{
 	case RPC_PUT:
 		sprintf(s_command, "PUT|Key=%d|Value=%d", message->key, message->value);
 		break;
@@ -43,9 +44,7 @@ int client_rpc_send(char* hostname, int command, xdrMsg * message,
 
 	log_write("client.log", hostname, hostname, 0, s_command, 0);
 
-	int status = callrpc(hostname,
-	RPC_PROG_NUM,
-	RPC_PROC_VER, command, xdr_rpc, message, xdr_rpc, response);
+	int status = callrpc(hostname, RPC_PROG_NUM, RPC_PROC_VER, command, xdr_rpc, message, xdr_rpc, response);
 	if (status < 0)
 		sprintf(s_command, "Receive Failed!");
 	else
@@ -90,200 +89,6 @@ int client_rpc_init(char** servers, int server_count) {
 //	}
 //
 //	printf("Messages Completed!\n\n\n");
-
-}
-
-int client_ui(char** servers, int server_count) {
-
-	xdrMsg message  = { 0 };
-	xdrMsg response = { 0 };
-	int status;
-
-	char user_input[128];
-	char command_word[16];
-	int command;
-	while (1) {
-		command = -1;
-		while (command == -1) {
-			printf(
-					"Please Choose a Command:\n  1. GET\n  2. PUT\n  3. DEL\n  Q. Quit\n>> ");
-			fgets(user_input, 128, stdin);
-
-			switch (user_input[0]) {
-			case '1':
-				//GET COMMAND;
-				command = RPC_GET;
-				strcpy(command_word, "Get");
-				break;
-			case '2':
-				//PUT COMMAND;
-				command = RPC_PUT;
-				strcpy(command_word,"Put");
-				break;
-			case '3':
-				//DELETE COMMAND;
-				command = RPC_DEL;
-				strcpy(command_word, "Delete");
-				break;
-			case 'Q':
-			case 'q':
-				printf("Goodbye!\n");
-				exit(0);
-			default:
-				printf("Invalid Entry, Try Again.");
-
-			}
-		}
-
-		int key_command = -1;
-		int key_value;
-		int is_integer;
-		char * toss;
-		while (key_command == -1) {
-			is_integer = 1;
-			key_value = 0;
-			printf(
-					"Please enter the key (integer) for which you'd like to %s [or q to quit]:\n>> ",
-					command_word);
-			fgets(user_input, 128, stdin);
-
-			if (user_input[0] == 'q') {
-				printf("Goodbye!\n");
-				exit(0);
-			}
-
-			for (int i = 0; i < 128; i++) {
-				if (user_input[i] == '\n') {
-					user_input[i] = '\0';
-					break;
-				}
-			}
-			// CHECK TO ENSURE IT IS AN INTEGER
-			for (int i = 0; i < strlen(user_input); i++) {
-				if (!isdigit(user_input[i]) && user_input[i] != '-') {
-					is_integer = -1;
-					break;
-				}
-			}
-
-			if (is_integer == 1) {
-				key_value = strtol(user_input, &toss, 10);
-				if (key_value == -1) {
-					printf(
-							"I'm sorry but -1 is an invalid sentinel key.  Please use another one!");
-				} else {
-					key_command = 1;
-				}
-			}
-
-			if (key_command == -1)
-				printf("Invalid Command, try again.\n\n");
-		}
-
-		int value_command = -1;
-		int value_value = -1;
-
-		if (command == RPC_PUT)  // WE ONLY NEED A VALUE FOR PUTS!
-		{
-			while (value_command == -1) {
-				is_integer = 1;
-				printf(
-						"Please enter a value that you'd like to enter for key %d [or q to quit]:\n>> ",
-						key_value);
-
-				fgets(user_input, 128, stdin);
-
-				if (user_input[0] == 'q') {
-					printf("Goodbye!\n");
-					exit(0);
-				}
-
-				for (int i = 0; i < 128; i++) {
-					if (user_input[i] == '\n') {
-						user_input[i] = '\0';
-						break;
-					}
-				}
-
-				// CHECK TO ENSURE IT IS AN INTEGER
-				for (int i = 0; i < strlen(user_input); i++) {
-					if (!isdigit(user_input[i])) {
-						is_integer = -1;
-						break;
-					}
-				}
-
-				if (is_integer == 1) {
-					char *toss;
-					value_value = strtol(user_input, &toss, 10);
-					value_command = 1;
-				}
-
-				if (value_command == -1)
-					printf("Invalid Command, try again.\n\n");
-			}
-		}
-
-		int server_command = -1;
-		int server_value;
-		while (server_command == -1) {
-			is_integer = 1;
-			server_value = 0;
-			printf(
-					"Please select the server on which to perform the action: \n");
-			for (int i = 0; i < server_count; i++)
-				printf("  %d. %s\n", i + 1, servers[i]);
-			printf("\n  Q. Quit\n >> ");
-
-			fgets(user_input, 128, stdin);
-
-			if (user_input[0] == 'q') {
-				printf("Goodbye!\n");
-				exit(0);
-			}
-
-			for (int i = 0; i < 128; i++) {
-				if (user_input[i] == '\n') {
-					user_input[i] = '\0';
-					break;
-				}
-			}
-
-			// CHECK TO ENSURE IT IS AN INTEGER
-			for (int i = 0; i < strlen(user_input); i++) {
-				if (!isdigit(user_input[i])) {
-					is_integer = -1;
-					break;
-				}
-			}
-
-			if (is_integer == 1) {
-				server_value = strtol(user_input, &toss, 10);
-
-				if (server_value >= 1 && server_value <= server_count) {
-					server_value = server_value - 1;  // get adjust the index!
-					server_command = 1;
-				} else {
-					printf("Invalid Server Entry, try again.");
-				}
-			}
-		}
-
-		printf(
-				"I'm going to execute a %s with key %d and value %d (if applicable) on server %s.\n",
-				command_word, key_value, value_value, servers[server_value]);
-
-		message.key = key_value;
-		message.value = value_value;
-
-		status = client_rpc_send(servers[server_value], command, &message,
-				&response);
-
-		if (status < 0)
-			printf("Message failed!\n");
-		else
-			printf("Send Successful!\n Try again!");
-	} // LOOP BACK AROUND AND TRY AGAIN!
 
 }
 
@@ -512,3 +317,260 @@ void ClientErrorHandle(char *errorMessage) {
 	perror(errorMessage);
 	exit(-1);
 }
+
+char * client_ui_get_command_word(int command)
+{
+	switch (command)
+	{
+	case RPC_GET:
+		return "Get";
+	case RPC_PUT:
+		return "Put";
+	case RPC_DEL:
+		return "Delete";
+	default:
+		return "Unknown";
+	}
+}
+
+
+int client_ui_get_command(int * command)
+{
+	char user_input[128];
+	printf("Please Choose a Command:\n  1. GET\n  2. PUT\n  3. DEL\n  4. Run Script\n Q. Quit\n>> ");
+	fgets(user_input, 128, stdin);
+
+	switch (user_input[0]) {
+	case '1':
+		//GET COMMAND;
+		*command = RPC_GET;
+		break;
+	case '2':
+		//PUT COMMAND;
+		*command = RPC_PUT;
+		break;
+	case '3':
+		//DELETE COMMAND;
+		*command = RPC_DEL;
+		break;
+	case '4':
+		//SCRIPT COMMAND
+		*command = 4;
+		break;
+	case 'Q':
+	case 'q':
+		printf("Goodbye!\n");
+		exit(0);
+	default:
+		printf("Invalid Entry, Try Again.\n\n");
+		return(-1);
+	}
+
+	// ALL IS GOOD, RETURN 0
+	return(0);
+
+}
+
+int client_ui_get_key(int * key)
+{
+	// ASK THE USER FOR AN INTEGER
+	printf("Please enter an key (integer) [or q to quit]:\n>> ");
+	int err = client_ui_get_int_from_user(key);
+
+	// IF THE USER PROVIDED AN INVALID INTEGER
+	if (err == -1)
+	{
+		printf("Invalid Key, please try again.\n\n");
+		return (-1);
+	}
+
+	if (*key == -1)
+	{
+		printf("Sorry, but -1 is an invalid, sentinel key.  Please try another.");
+		return(-1);
+	}
+
+	return(0);
+}
+
+int client_ui_get_value(int * key)
+{
+	// ASK THE USER FOR AN INTEGER
+	printf("Please enter a value (integer) [or q to quit]:\n>> ");
+	int err = client_ui_get_int_from_user(key);
+
+	// IF THE USER PROVIDED AN INVALID INTEGER
+	if (err == -1)
+		printf("Invalid Value, try again.\n\n");
+
+	return (err);
+
+}
+
+int client_ui_get_int_from_user(int * input)
+{
+	char user_input[128];
+
+	fgets(user_input, 128, stdin);
+
+	if (user_input[0] == 'q') {
+		printf("Goodbye!\n");
+		exit(0);
+	}
+
+	int err;
+	*input = client_parse_int(user_input, 128, &err);
+
+	return (err);
+
+}
+
+
+int client_ui_get_server(int * server_number, char** servers, int server_count)
+{
+
+	// DISPLAY THE SERVER LIST AND ASK FOR INPUT
+	printf("Please select the server on which to perform the action: \n");
+	for (int i = 0; i < server_count; i++)
+		printf("  %d. %s\n", i + 1, servers[i]);
+	printf("\n  Q. Quit\n\n >> ");
+
+	// GET INT FROM USER
+	int err = client_ui_get_int_from_user(server_number);
+
+	// CHECK THE INPUT
+	if (err == -1)
+	{
+		printf("Invalid Server, try again!");
+	} else if (*server_number > server_count || *server_number < 1) {  // SERVER OUT OF RANGE
+		printf("Invalid Server, try again!");
+		err = -1;  //set the flag manually
+	} else {
+		// ADJUST THE INDEX BY ONE (1 THROUGH N IS DISPLAY TO THE USER
+		// BUT THE ARRAY IS 0 THROUGH N-1
+		*server_number = *server_number - 1;
+	}
+
+	return(err);
+
+}
+
+void client_ui_runscript(char** servers, server_count)
+{
+
+	printf("Running a script with commands on random servers!\n");
+
+
+	xdrMsg response;
+
+	xdrMsg messages[15];
+	getRPCMessages(messages);
+
+	int commands[15];
+	getRPCCommands(commands);
+
+	// SEND THE 15 COMMANDS TO A RANDEOM SEQUENCE OF SERVERS
+	for (int i = 0; i < 15; i++)
+	{
+		int r = rand() % server_count;
+		int status = client_rpc_send(servers[r], commands[i], &messages[i], &response);
+		if (status < 0)
+			printf("Message Failed to send.\n");
+		else if (response.key == -1)
+			printf("Action was not completed.\m");
+		else
+			printf("The response was Key: %d, Value %d.\n", response.key, response.value);
+	}
+
+	return;
+}
+
+int client_ui(char** servers, int server_count) {
+
+	while (1) {
+		// GET THE COMMAND
+		int command;
+		while (client_ui_get_command(&command) == -1);
+
+
+		if (command == 4)  // IT IS THE SCRIPT
+		{
+			client_ui_runscript(servers, server_count);
+		} else {  // MANUALLY PERFORM COMMANDS.
+			// GET THE KEY
+			int key;
+			while (client_ui_get_key(&key) == -1);
+
+			// GET THE VALUE (IF APPLICABLE)
+			int value = -1;
+			if (command == RPC_PUT)
+				while (client_ui_get_value(&value) == -1);
+
+			// GET THE SERVER INDEX
+			int server_index;
+			while (client_ui_get_server(&server_index, servers, server_count) == -1);
+
+
+			// DISPLAY ACTION TO USER
+			char * command_word = client_ui_get_command_word(command);
+
+			printf("I'm going to execute a %s with key %d and value %d (if applicable) on server %s.\n",
+					command_word, key, value, servers[server_index]);
+
+			// BUILD MESSAGE
+			xdrMsg message = { 0 };
+			xdrMsg response = { 0 };
+
+			message.key = key;
+			message.value = value;
+
+			int status = client_rpc_send(servers[server_index], command, &message, &response);
+
+			if (status < 0)
+				printf("Message failed!\n");
+			else
+				printf("Send Successful!\n Perform another command...\n\n");
+			}
+		}
+	}
+
+
+int client_parse_int(char * input, int length, int * err)
+{
+	int is_integer = 1;  // FLAG TO INDICATE WHETHER THE INPUT IS AN INT
+	int to_return;       // VALUE TO RETURN
+	char * toss[length]; // A BUFFER IN WHICH TO THROW JUNK FROM STRLOL INTO
+
+
+	// TERMINATE THE INPUT STRING
+	for (int i = 0; i < length; i++) {
+		if (input[i] == '\n') {
+			input[i] = '\0';
+			break;
+		}
+	}
+
+	// CHECK TO ENSURE ALL CHARS ARE INTEGERS
+	for (int i = 0; i < strlen(input); i++) {
+		//CHECK TO SEE IF IT IS A DIGIT OR IF IT IS THE FIRST DIGIT AND NEGATIVE
+		if (!isdigit(input[i]))
+		{
+			// IF IT ISN'T A DIGIT, IT CAN STILL BE A '-' IF IT IS THE FIRST ELEMENT
+			if (!(i == 0 && input[i] == '-'))
+				is_integer = -1;
+			break;
+		}
+	}
+
+	if (is_integer == 1) {
+		to_return = strtol(input, &toss, 10);
+		*err = 0;
+	} else {
+		to_return = -1;
+		*err = -1;
+	}
+
+	return(to_return);
+}
+
+
