@@ -12,11 +12,11 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <stdlib.h>
 #include <string.h>
 #include <stdlib.h>
 #include <rpc/rpc.h>
@@ -109,6 +109,11 @@ void getRPCCommands(int* commands);
  ********************************************/
 void ClientErrorHandle(char *errorMessage);
 
+
+/******
+ * RUNS THE CLIENT FOR THE INTERFACE.
+ */
+int client_ui(char** servers, int server_count);
 
 /*****************************************************
  * ACCEPTS AN INTEGER AND RESPONDS WITH A CHAR ARRAY *

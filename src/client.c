@@ -455,7 +455,7 @@ int client_ui_get_server(int * server_number, char** servers, int server_count)
 
 }
 
-void client_ui_runscript(char** servers, server_count)
+void client_ui_runscript(char** servers, int server_count)
 {
 
 	printf("Running a script with commands on random servers!\n");
@@ -477,7 +477,7 @@ void client_ui_runscript(char** servers, server_count)
 		if (status < 0)
 			printf("Message Failed to send.\n");
 		else if (response.key == -1)
-			printf("Action was not completed.\m");
+			printf("Action was not completed.\n");
 		else
 			printf("The response was Key: %d, Value %d.\n", response.key, response.value);
 	}
