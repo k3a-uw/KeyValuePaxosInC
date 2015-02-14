@@ -131,6 +131,9 @@ void kv_print(kv* the_kv);
 int kv_parser(char* message, int* ret_command, int* ret_key, int* ret_value);
 
 
+int kv_get_lock_status(kv * the_kv, int key);
+int kv_set_lock_status(kv * the_kv, int key, int status);
+
 #endif
 
 

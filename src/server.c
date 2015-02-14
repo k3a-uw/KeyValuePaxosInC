@@ -52,6 +52,7 @@ xdrMsg * server_rpc_get(xdrMsg * indata) {
 xdrMsg * server_rpc_put(xdrMsg * indata) {
 
 	// APPLY LOCK TO OUR KEY
+	printf("Coordinator: Applying lock to Key: %d\n", indata->key);
 	kv_set_lock_status(kv_store, indata->key, KV_LOCKED);
 
 	// SEND PREPARE TO COMMIT TO ALL SERVERS  (WHEN A SERVER RECEIVED A 'PREPARE TO COMMIT, THEY APPLY A LOCK)
@@ -66,8 +67,10 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 	message.status = PREPARE;
 
 	// tell all servers to prepare! (this will be a loop)
+	printf("Sending PREPEARE to All Servers!\n");
 	int responses = 0;
 	for (int i = 0; i < server_count; i++) {
+		printf("Sending Prepare to %s.\n", servers[i]);
 		if (strcmp(myname, servers[i]) != 0) {
 			int status = callrpc(servers[i],
 						RPC_PROG_NUM,
@@ -77,10 +80,13 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 						&message,
 						xdr_rpc,
 						&response);
+			printf("Server %s Resonded with %d.\n", servers[i], response.status);
 			if (status >= 0 && response.status == READY)
 				responses++;
 		}
 	}
+
+	printf("Received %d of the required %d READY responses.\n", responses, server_count-1);
 
 	// ONLY CONTINUE IF YOU HAVE ENOUGH READYS, OTHERWISE ABORT
 	if (responses >= server_count - 1) {
@@ -88,26 +94,35 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 		message.value  = indata->value;
 		message.status = COMMIT_PUT;
 
+		printf("Enough Responses, so I'm sending performing my change!!\n");
+
 		result = kv_put(kv_store, indata->key, indata->value);
 
 		if (result == 0) {
+			printf("The put of key %d was successful.\n", indata->key);
 			outdata.key   = 0;
 			outdata.value = result;
+			outdata.status = OK;
 		} else {
-			outdata.key   = 0;
+			printf("The put of key %d was NOT successful.\n", indata->key);
+			outdata.key   = -1;
 			outdata.value = 0;
+			outdata.status = OK;
 		}
 
 	} else {   //abort
-		message.key;
-		message.value;
+		printf("I didn't get enough responses, so I'm aborting\n");
+		message.key    = -1;
+		message.value  = -1;
 		message.status = ABORT;
 	}
 
 	// SEND COMMIT (OR ABORT TO ALL SERVERS)
 	responses = 0;
+	printf("Sending Status: %d to all servers! (Positive is commit, negative is abort!\n", message.status);
 	for (int i = 0; i < server_count; i++) {
 		if (strcmp(myname, servers[i]) != 0) {
+			printf("  Sending to server: %s.\n", servers[i]);
 			int status = callrpc(servers[i],
 							RPC_PROG_NUM,
 							RPC_PROC_VER,
@@ -116,7 +131,7 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 							&message,
 							xdr_rpc,
 							&response);
-
+			printf("  Received from server: %d.\n", response.status);
 			if (status >= 0 && response.status == OK)
 				responses++;
 			else
@@ -125,6 +140,7 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 	}
 
 	//WHEN ALL OKAYS ARE RETURNED, REMOVE LOCK
+	printf("Setting the lock back on key %d.\n", indata->key);
 	kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
 
 	// RESPOND TO CLIENT AND WRITE TO THE LOCK
@@ -135,26 +151,34 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 	sprintf(s_command, "Key=%d,Value=%d", outdata.key, outdata.value);
 	log_write("server.log", "unknown (RPC)", "unknown (RPC)", 0, s_command, 0);
 
+	printf("Responding to client with key: %d and status: %d", outdata.key, outdata.status);
+
 	return (&outdata);
 
 }
 
 xdrMsg * server_rpc_2pc(xdrMsg * indata) {
-	printf("Did I get to the 2PC command!?\n");
 
 	xdrMsg outdata = { 0 };
 	switch (indata->status) {
 	case PREPARE:
+		printf("Received a PREPARE for key %d.\n", indata->key);
+		printf("Checking lock!\n");
 		if (kv_get_lock_status(kv_store, indata->key) == KV_LOCKED) {
 			outdata.status = NACK;
+			printf("Key Locked! Responding with NACK!\n");
 		} else {
+			printf("Key Unlocked! Setting lock and Responding with READY!\n");
 			kv_set_lock_status(kv_store, indata->key, KV_LOCKED);
 			outdata.status = READY;
 		}
 		break;
 
 	case COMMIT_PUT:
+		printf("Received a COMMIT_PUT!\n");
+		printf("Putting  value: %d into key: %d\n", indata->value, indata->key);
 		kv_put(kv_store, indata->key, indata->value);
+		printf("Removing lock!\n");
 		kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
 		outdata.status = OK;
 		break;
@@ -175,6 +199,8 @@ xdrMsg * server_rpc_2pc(xdrMsg * indata) {
 		break;
 	}
 
+
+	printf("Responding with status: %d.\n", outdata.status);
 	return (&outdata);
 
 }
@@ -187,32 +213,107 @@ xdrMsg * server_rpc_2pc(xdrMsg * indata) {
 xdrMsg * server_rpc_del(xdrMsg * indata) {
 
 	// APPLY LOCK TO OUR KEY
+	printf("About to DELETE key: %d\n", indata->key);
+	printf("Coordinator: Applying lock to Key: %d\n", indata->key);
+	kv_set_lock_status(kv_store, indata->key, KV_LOCKED);
+
 	// SEND PREPARE TO COMMIT TO ALL SERVERS  (WHEN A SERVER RECEIVED A 'PREPARE TO COMMIT, THEY APPLY A LOCK)
-	// WAIT FOR RESPONSE FROM ALL SERVERS
-	// IF NACK IS RECEIVED, THEN ABORT (SEND MESSAGE TO CLIENT SAYING "FAIL!")
-	// IF ALL RESPONSES ARE YES
-	// APPLY CHANGE LOCALLY
-	// SEND "COMMIT"  (SPIN UP 4 THREADS AND CALL RPC_COMMIT)
-	// WAIT FOR "OK" AND RECORD OKAY TO THE LOG.
-	// RETURN WHEN ALL OK ARE RECEIVED.
-	// RELEASE LOCK.
-	char s_command[BUFFSIZE];
-	sprintf(s_command, "DEL=%d", indata->key);
-	log_write("server.log", "unknown (RPC)", "(unknown RPC)", 0, s_command, 1);
+	xdrMsg message = { 0 };
+	xdrMsg response = { 0 };
+	xdrMsg outdata = { 0 };
 
-	xdrMsg outdata;
-	int result = kv_del(kv_store, indata->key);
+	int result;
 
-	if (result == 0) {
-		outdata.key = 0;
-		outdata.value = result;
-	} else {
-		outdata.key = -1;
-		outdata.value = result;
+	message.key    = indata->key;
+	message.value  = indata->value;
+	message.status = PREPARE;
+
+	// tell all servers to prepare! (this will be a loop)
+	printf("Sending PREPEARE to All Servers!\n");
+	int responses = 0;
+	for (int i = 0; i < server_count; i++) {
+		printf("Sending Prepare to %s.\n", servers[i]);
+		if (strcmp(myname, servers[i]) != 0) {
+			int status = callrpc(servers[i],
+						RPC_PROG_NUM,
+						RPC_PROC_VER,
+						RPC_2PC,
+						xdr_rpc,
+						&message,
+						xdr_rpc,
+						&response);
+			printf("Server %s Resonded with %d.\n", servers[i], response.status);
+			if (status >= 0 && response.status == READY)
+				responses++;
+		}
 	}
 
-	sprintf(s_command, "Key=%d,Value=%d", outdata.key, outdata.value);
+	printf("Received %d of the required %d READY responses.\n", responses, server_count-1);
+
+	// ONLY CONTINUE IF YOU HAVE ENOUGH READYS, OTHERWISE ABORT
+	if (responses >= server_count - 1) {
+		message.key    = indata->key;
+		message.value  = indata->value;
+		message.status = COMMIT_DEL;
+
+		printf("Enough Responses, so I'm sending performing my change!!\n");
+
+		result = kv_put(kv_store, indata->key, indata->value);
+
+		if (result == 0) {
+			printf("The delete of key %d was successful.\n", indata->key);
+			outdata.key   = 0;
+			outdata.value = result;
+			outdata.status = OK;
+		} else {
+			printf("The delete of key %d was NOT successful.\n", indata->key);
+			outdata.key   = -1;
+			outdata.value = 0;
+			outdata.status = OK;
+		}
+
+	} else {   //abort
+		printf("I didn't get enough responses, so I'm aborting\n");
+		message.key    = -1;
+		message.value  = -1;
+		message.status = ABORT;
+	}
+
+	// SEND COMMIT (OR ABORT TO ALL SERVERS)
+	responses = 0;
+	printf("Sending Status: %d to all servers! (Positive is commit, negative is abort!\n", message.status);
+	for (int i = 0; i < server_count; i++) {
+		if (strcmp(myname, servers[i]) != 0) {
+			printf("  Sending to server: %s.\n", servers[i]);
+			int status = callrpc(servers[i],
+							RPC_PROG_NUM,
+							RPC_PROC_VER,
+							RPC_2PC,
+							xdr_rpc,
+							&message,
+							xdr_rpc,
+							&response);
+			printf("  Received from server: %d.\n", response.status);
+			if (status >= 0 && response.status == OK)
+				responses++;
+			else
+				printf("COMMIT RESPONSE FAILED");
+		}
+	}
+
+	//WHEN ALL OKAYS ARE RETURNED, REMOVE LOCK
+	printf("Setting the lock back on key %d.\n", indata->key);
+	kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
+
+	// RESPOND TO CLIENT AND WRITE TO THE LOCK
+	char s_command[BUFFSIZE];
+	sprintf(s_command, "DEL Key=%d Value=NA", indata->key);
+	log_write("server.log", "unknown (RPC)", "(unknown RPC)", 0, s_command, 1);
+
+	sprintf(s_command, "Key=%d,Value=NA", outdata.key);
 	log_write("server.log", "unknown (RPC)", "unknown (RPC)", 0, s_command, 0);
+
+	printf("Responding to client with key: %d and status: %d", outdata.key, outdata.status);
 
 	return (&outdata);
 }
