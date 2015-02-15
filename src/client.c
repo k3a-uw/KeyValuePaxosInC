@@ -23,34 +23,59 @@
  ******************************************************/
 int client_rpc_send(char* hostname, int command, xdrMsg * message, xdrMsg * response)
 {
+
 	char s_command[BUFFSIZE];
 	switch (command)
 	{
 	case RPC_PUT:
-		sprintf(s_command, "PUT|Key=%d|Value=%d", message->key, message->value);
+		sprintf(s_command, "SENT=PUT(%d,%d)", message->key, message->value);
 		break;
 	case RPC_GET:
-		sprintf(s_command, "GET|Key=%d", message->key);
+		sprintf(s_command, "SENT=GET(%d)", message->key);
 		break;
 	case RPC_DEL:
-		sprintf(s_command, "DEL|Key=%d", message->key);
+		sprintf(s_command, "SENT=DEL(%d)", message->key);
 		break;
 	default:
-		sprintf(s_command, "Bad Command: Not sent.");
-		log_write("client.log", hostname, hostname, 0, s_command, 0);
+		sprintf(s_command, "BAD COMMAND");
+		log_write("client.log", hostname, s_command);
 		return (-1);
 		break;
 	}
 
-	log_write("client.log", hostname, hostname, 0, s_command, 0);
+	log_write("client.log", hostname, s_command);
 
 	int status = callrpc(hostname, RPC_PROG_NUM, RPC_PROC_VER, command, xdr_rpc, message, xdr_rpc, response);
-	if (status < 0)
-		sprintf(s_command, "Receive Failed!");
-	else
-		sprintf(s_command, "Key=%d|Value=%d", response->key, response->value);
 
-	log_write("client.log", hostname, hostname, 0, s_command, 1);
+	if (status < 0)
+	{
+		log_write("client.log", hostname, "RECV=SEND_FAILURE");
+	} else {
+		switch (command)
+		{
+		case RPC_PUT:
+			if (response->key != -1)
+				sprintf(s_command,"RECV=PUT_SUCCESS(%d, %d)", message->key, message->value);
+			else
+				sprintf(s_command,"RECV=PUT_FAILURE(%d)", message->key);
+			break;
+		case RPC_GET:
+			if (response->key != -1)
+				sprintf(s_command,"RECV=VALUE(%d)", response->value);
+			else
+				sprintf(s_command,"RECV=KEYNOTFOUND(%d)", message->key);
+			break;
+		case RPC_DEL:
+			if (response->key != -1)
+				sprintf(s_command,"RECV=DEL_SUCCESS(%d)", message->key);
+			else
+				sprintf(s_command,"RECV=KEYNOTFOUND(%d)", message->key);
+			break;
+		}
+	}
+
+	// WRITE OUT TO THE LOG
+	log_write("client.log", hostname, s_command);
 	return status;
 
 }
@@ -99,59 +124,59 @@ int client_rpc_init(char** servers, int server_count) {
  *  THE SERVER. EXITS PROGRAM WHEN COMPLETED.           *
  *  THE PROTOCOL USED: UDP
  ********************************************************/
-int client_udp_init(char* hostname, unsigned short port_num) {
-	printf("You ran the UDP client as hostname:port => %s:%d\n", hostname,
-			port_num);
-
-	int server_sock;
-	int n;
-
-	struct sockaddr_in server;
-	char rmessage[BUFFSIZE];
-
-	int message_count = 21;
-	char * messages[message_count];
-	getMessages(messages);
-
-	server_sock = socket(AF_INET, SOCK_DGRAM, 0);
-
-	if (server_sock < 0)
-		ClientErrorHandle("Socket() Failed");
-
-	bzero(&server, sizeof(server));
-	server.sin_family = AF_INET;
-	server.sin_addr.s_addr = inet_addr(hostname);
-	server.sin_port = htons(port_num);
-
-	int server_length = sizeof(server);
-	for (int i = 0; i < message_count; i++) {
-		n = sendto(server_sock, messages[i], strlen(messages[i]), 0,
-				(struct sockaddr *) &server, server_length);
-		if (n < 0) {
-			log_write("client.log", hostname, hostname, port_num,
-					"Message Failed", 0);
-			ClientErrorHandle("Message Send Failure");
-		} else {
-			log_write("client.log", hostname, hostname, port_num, messages[i],
-					0);
-		}
-
-		bzero(rmessage, BUFFSIZE);
-		n = recvfrom(server_sock, rmessage, BUFFSIZE, 0,
-				(struct sockaddr *) &server, &server_length);
-		if (n < 0)
-			log_write("client.log", hostname, hostname, port_num,
-					"Response Failed", 1);
-		else
-			log_write("client.log", hostname, hostname, port_num, rmessage, 1);
-	}
-
-	printf("Messages sent.  Ending communication.");
-	close(server_sock);
-
-	exit(0);
-
-}
+//int client_udp_init(char* hostname, unsigned short port_num) {
+//	printf("You ran the UDP client as hostname:port => %s:%d\n", hostname,
+//			port_num);
+//
+//	int server_sock;
+//	int n;
+//
+//	struct sockaddr_in server;
+//	char rmessage[BUFFSIZE];
+//
+//	int message_count = 21;
+//	char * messages[message_count];
+//	getMessages(messages);
+//
+//	server_sock = socket(AF_INET, SOCK_DGRAM, 0);
+//
+//	if (server_sock < 0)
+//		ClientErrorHandle("Socket() Failed");
+//
+//	bzero(&server, sizeof(server));
+//	server.sin_family = AF_INET;
+//	server.sin_addr.s_addr = inet_addr(hostname);
+//	server.sin_port = htons(port_num);
+//
+//	int server_length = sizeof(server);
+//	for (int i = 0; i < message_count; i++) {
+//		n = sendto(server_sock, messages[i], strlen(messages[i]), 0,
+//				(struct sockaddr *) &server, server_length);
+//		if (n < 0) {
+//			log_write("client.log", hostname, hostname, port_num,
+//					"Message Failed", 0);
+//			ClientErrorHandle("Message Send Failure");
+//		} else {
+//			log_write("client.log", hostname, hostname, port_num, messages[i],
+//					0);
+//		}
+//
+//		bzero(rmessage, BUFFSIZE);
+//		n = recvfrom(server_sock, rmessage, BUFFSIZE, 0,
+//				(struct sockaddr *) &server, &server_length);
+//		if (n < 0)
+//			log_write("client.log", hostname, hostname, port_num,
+//					"Response Failed", 1);
+//		else
+//			log_write("client.log", hostname, hostname, port_num, rmessage, 1);
+//	}
+//
+//	printf("Messages sent.  Ending communication.");
+//	close(server_sock);
+//
+//	exit(0);
+//
+//}
 
 /********************************************************
  *  LAUNCHES A SCRIPT THAT COMMUNICATES WITH THE SERVER *
@@ -160,67 +185,67 @@ int client_udp_init(char* hostname, unsigned short port_num) {
  *  THE SERVER. EXITS PROGRAM WHEN COMPLETED.           *
  *  THE PROTOCOL USED: TCP
  ********************************************************/
-int client_tcp_init(char* hostname, unsigned short port_num) {
-	printf("You ran the TCP client as hostname:port => %s:%d", hostname,
-			port_num);
-
-	printf("You're testing the TCP Client! \n");
-	int server_sock;
-	int rc;
-	int n;
-
-	struct sockaddr_in server;
-	char rmessage[BUFFSIZE];
-
-	server_sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (server_sock < 0)
-		ClientErrorHandle("Socket Failed");
-
-	bzero(&server, sizeof(server));
-	server.sin_family = AF_INET;
-	server.sin_addr.s_addr = inet_addr(hostname);
-	server.sin_port = htons(port_num);
-
-	rc = connect(server_sock, (struct sockaddr *) &server,
-			sizeof(struct sockaddr));
-	if (rc < 0) {
-		ClientErrorHandle("Cannot Connect to Server");
-		exit(-1);
-	} else {
-		printf("The server is connected.\n");
-	}
-
-	// PREPARE TO SEND MESSAGES
-	int message_count = 21;
-	char* messages[message_count];
-	getMessages(messages);
-
-	// SEND A BUNCH OF MESSAGES!
-	for (int i = 0; i < message_count; i++) {
-
-		n = send(server_sock, messages[i], BUFFSIZE, 0);
-		if (n < 0)
-			log_write("client.log", hostname, hostname, port_num,
-					"Message Failed", 0);
-		else
-			log_write("client.log", hostname, hostname, port_num, messages[i],
-					0);
-
-		bzero(rmessage, BUFFSIZE);
-
-		n = recv(server_sock, rmessage, BUFFSIZE, MSG_WAITALL);
-		if (n < 0)
-			log_write("client.log", hostname, hostname, port_num,
-					"Received Failed", 1);
-		else
-			log_write("client.log", hostname, hostname, port_num, rmessage, 1);
-	}
-
-	printf("Messages sent.  Ending communication.");
-	close(server_sock);
-	exit(0);
-
-}
+//int client_tcp_init(char* hostname, unsigned short port_num) {
+//	printf("You ran the TCP client as hostname:port => %s:%d", hostname,
+//			port_num);
+//
+//	printf("You're testing the TCP Client! \n");
+//	int server_sock;
+//	int rc;
+//	int n;
+//
+//	struct sockaddr_in server;
+//	char rmessage[BUFFSIZE];
+//
+//	server_sock = socket(AF_INET, SOCK_STREAM, 0);
+//	if (server_sock < 0)
+//		ClientErrorHandle("Socket Failed");
+//
+//	bzero(&server, sizeof(server));
+//	server.sin_family = AF_INET;
+//	server.sin_addr.s_addr = inet_addr(hostname);
+//	server.sin_port = htons(port_num);
+//
+//	rc = connect(server_sock, (struct sockaddr *) &server,
+//			sizeof(struct sockaddr));
+//	if (rc < 0) {
+//		ClientErrorHandle("Cannot Connect to Server");
+//		exit(-1);
+//	} else {
+//		printf("The server is connected.\n");
+//	}
+//
+//	// PREPARE TO SEND MESSAGES
+//	int message_count = 21;
+//	char* messages[message_count];
+//	getMessages(messages);
+//
+//	// SEND A BUNCH OF MESSAGES!
+//	for (int i = 0; i < message_count; i++) {
+//
+//		n = send(server_sock, messages[i], BUFFSIZE, 0);
+//		if (n < 0)
+//			log_write("client.log", hostname, hostname, port_num,
+//					"Message Failed", 0);
+//		else
+//			log_write("client.log", hostname, hostname, port_num, messages[i],
+//					0);
+//
+//		bzero(rmessage, BUFFSIZE);
+//
+//		n = recv(server_sock, rmessage, BUFFSIZE, MSG_WAITALL);
+//		if (n < 0)
+//			log_write("client.log", hostname, hostname, port_num,
+//					"Received Failed", 1);
+//		else
+//			log_write("client.log", hostname, hostname, port_num, rmessage, 1);
+//	}
+//
+//	printf("Messages sent.  Ending communication.");
+//	close(server_sock);
+//	exit(0);
+//
+//}
 
 /*****************************************************
  * SAVES A CHAR* ARRAY THAT CONTAINTS A SERIES OF    *
@@ -474,13 +499,13 @@ void client_ui_runscript(char** servers, int server_count)
 	{
 		int r = rand() % server_count;
 		int status = client_rpc_send(servers[r], commands[i], &messages[i], &response);
-		if (status < 0)
+/*		if (status < 0)
 			printf("Message Failed to send.\n");
 		else if (response.key == -1)
 			printf("Action was not completed.\n");
 		else
 			printf("The response was Key: %d, Value %d.\n", response.key, response.value);
-	}
+*/	}
 
 	return;
 }

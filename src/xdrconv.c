@@ -27,6 +27,5 @@ int xdr_rpc(XDR * xdr, xdrMsg * content)
 		if (!xdr_int(xdr, &content->status))
 					  return (0);
 
-
 		return (1);
 }

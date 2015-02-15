@@ -16,19 +16,9 @@
  * WILL BE CREATED.  IF THE FILE IS UNABLE TO BE OPENED, LOG_WRITE WILL RETURN *
  * -1 OTHERWISE WILL RETURN 0.                                                 *
  ******************************************************************************/
-int log_write(char* filename, char * host, char * ip, int port, char * message, int is_recv)
+int log_write(char* filename, char * host, char * message)
 {
 	FILE * fd = fopen(filename, "a");
-
-
-	char msg[9];
-
-	if (is_recv == 1)
-	{
-		strcpy(msg, "Received");
-	} else {
-		strcpy(msg, "Sent");
-	}
 
 	if (fd == NULL)
 	{
@@ -37,10 +27,8 @@ int log_write(char* filename, char * host, char * ip, int port, char * message, 
 	} else {
 		char timestamp[30];
 		buildTimeStamp(timestamp);
-		//fprintf(fd, "{{Time=%s},{Host=%s},{ip=%s},{Port=%d},{%s=%s}}\n", timestamp, host, ip, port, msg, message);
-		//printf("{{Time=%s},{Host=%s},{ip=%s},{Port=%d},{%s=%s}}\n", timestamp, host, ip, port, msg, message);
-		fprintf(fd, "{{Time=%s},{Host=%s},{ip=%s},{%s=%s}}\n", timestamp, host, ip, msg, message);
-		printf("{{Time=%s},{Host=%s},{ip=%s},{%s=%s}}\n", timestamp, host, ip, msg, message);
+		printf("{{Timestamp=%s},{host=%s},{%s}}\n", timestamp, host, message);
+		fprintf(fd, "{{Timestamp=%s},{host=%s},{%s}}", timestamp, host, message);
 		fclose(fd);
 		return 0;
 	}

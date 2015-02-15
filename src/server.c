@@ -25,21 +25,25 @@ int server_count;
  *******************************************************/
 xdrMsg * server_rpc_get(xdrMsg * indata) {
 	char s_command[BUFFSIZE];
-	sprintf(s_command, "GET=%d", indata->key);
-	log_write("server.log", "unknown (RPC)", "(unknown RPC)", 0, s_command, 1);
+	sprintf(s_command, "RECV=GET(%d)", indata->key);
+	log_write("server.log", myname, s_command);
 	xdrMsg outdata;
 	int value;
 	int result = kv_get(kv_store, indata->key, &value);
 
 	if (result == 0) {
-		outdata.key = 0;
-		outdata.value = value;
+		sprintf(s_command, "SENT=VALUE(%d)", value);
+		outdata.key    = 0;
+		outdata.value  = value;
+		outdata.status = OK;
 	} else {
-		outdata.key = -1;
-		outdata.value = 0;
+		sprintf(s_command, "SENT=KEYNOTFOUND(%d)", indata->key);
+		outdata.key    = -1;
+		outdata.value  = 0;
+		outdata.status = OK;
 	}
-	sprintf(s_command, "Key=%d,Value=%d", outdata.key, outdata.value);
-	log_write("server.log", "unknown (RPC)", "unknown (RPC)", 0, s_command, 0);
+
+	log_write("server.log", myname, s_command);
 	return (&outdata);
 
 }
@@ -51,14 +55,17 @@ xdrMsg * server_rpc_get(xdrMsg * indata) {
  *******************************************************/
 xdrMsg * server_rpc_put(xdrMsg * indata) {
 
+	char s_command[BUFFSIZE];
+	char r_command[BUFFSIZE];
+	sprintf(s_command, "RECV=PUT(%d,%d)", indata->key, indata->value);
+	log_write("server.log", "client", s_command);
+
 	// APPLY LOCK TO OUR KEY
-	printf("Coordinator: Applying lock to Key: %d\n", indata->key);
 	kv_set_lock_status(kv_store, indata->key, KV_LOCKED);
 
 	// SEND PREPARE TO COMMIT TO ALL SERVERS  (WHEN A SERVER RECEIVED A 'PREPARE TO COMMIT, THEY APPLY A LOCK)
-	xdrMsg message = { 0 };
+	xdrMsg message  = { 0 };
 	xdrMsg response = { 0 };
-	xdrMsg outdata = { 0 };
 
 	int result;
 
@@ -67,11 +74,12 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 	message.status = PREPARE;
 
 	// tell all servers to prepare! (this will be a loop)
-	printf("Sending PREPEARE to All Servers!\n");
 	int responses = 0;
 	for (int i = 0; i < server_count; i++) {
-		printf("Sending Prepare to %s.\n", servers[i]);
+//		printf("Sending Prepare to %s.\n", servers[i]);
 		if (strcmp(myname, servers[i]) != 0) {
+			sprintf(s_command, "SENT=PREPARE(%d)", message.key);
+			log_write("server.log", servers[i], s_command);
 			int status = callrpc(servers[i],
 						RPC_PROG_NUM,
 						RPC_PROC_VER,
@@ -80,49 +88,67 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 						&message,
 						xdr_rpc,
 						&response);
-			printf("Server %s Resonded with %d.\n", servers[i], response.status);
-			if (status >= 0 && response.status == READY)
+			if (status < 0)
+			{
+				sprintf(s_command, "RECV=SEND FAILURE");
+			} else if(response.status == READY) {
 				responses++;
+				sprintf(s_command, "RECV=READY(%d)", message.key);
+			} else {
+				sprintf(s_command, "RECV=NACK(%d)", message.key);
+			}
+
+			log_write("server.log", servers[i], s_command);
 		}
 	}
 
-	printf("Received %d of the required %d READY responses.\n", responses, server_count-1);
+
+	int out_key;
+	int out_value;
+	int out_status;
 
 	// ONLY CONTINUE IF YOU HAVE ENOUGH READYS, OTHERWISE ABORT
 	if (responses >= server_count - 1) {
 		message.key    = indata->key;
 		message.value  = indata->value;
 		message.status = COMMIT_PUT;
+		sprintf(s_command, "SENT=COMMIT_PUT(%d,%d)", message.key);
 
-		printf("Enough Responses, so I'm sending performing my change!!\n");
+		//printf("Enough Responses, so I'm sending performing my change!!\n");
 
 		result = kv_put(kv_store, indata->key, indata->value);
 
 		if (result == 0) {
-			printf("The put of key %d was successful.\n", indata->key);
-			outdata.key   = 0;
-			outdata.value = result;
-			outdata.status = OK;
+//			printf("The put of key %d was successful.\n", indata->key);
+			out_key    = 0;
+			out_value  = result;
+			out_status = OK;
+			sprintf(r_command, "SENT=PUT_SUCCESS(%d,%d)", indata->key, out_value);
 		} else {
-			printf("The put of key %d was NOT successful.\n", indata->key);
-			outdata.key   = -1;
-			outdata.value = 0;
-			outdata.status = OK;
+//			printf("The put of key %d was NOT successful.\n", indata->key);
+			out_key    = -1;
+			out_value  = 0;
+			out_status = OK;
+			sprintf(r_command, "SENT=PUT_FAILURE(%d,%d)", indata->key, indata->value);
 		}
 
 	} else {   //abort
-		printf("I didn't get enough responses, so I'm aborting\n");
-		message.key    = -1;
+//		printf("I didn't get enough responses, so I'm aborting\n");
+		message.key    = indata->key;
 		message.value  = -1;
 		message.status = ABORT;
+		out_key   = -1;
+		out_value = -1;
+		out_status = ABORT;
+		sprintf(s_command, "SENT=ABORT(%d)", message.key);  // MESSAGE TO SENT TO SERVERS
+		sprintf(r_command, "SENT=PUT_FAILURE(%d)", message.key);
 	}
 
 	// SEND COMMIT (OR ABORT TO ALL SERVERS)
 	responses = 0;
-	printf("Sending Status: %d to all servers! (Positive is commit, negative is abort!\n", message.status);
 	for (int i = 0; i < server_count; i++) {
 		if (strcmp(myname, servers[i]) != 0) {
-			printf("  Sending to server: %s.\n", servers[i]);
+			log_write("server.log", servers[i], s_command);
 			int status = callrpc(servers[i],
 							RPC_PROG_NUM,
 							RPC_PROC_VER,
@@ -131,76 +157,225 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 							&message,
 							xdr_rpc,
 							&response);
-			printf("  Received from server: %d.\n", response.status);
-			if (status >= 0 && response.status == OK)
+			if (status < 0) {
+				sprintf(s_command, "RECV=SEND FAILURE");
+			} else if (response.status == OK) {
 				responses++;
-			else
-				printf("COMMIT RESPONSE FAILED");
+				sprintf(s_command, "RECV=OK");
+			} else {
+				sprintf(s_command, "RECV=NACK");
+			}
+			log_write("server.log", servers[i], s_command);
 		}
 	}
 
 	//WHEN ALL OKAYS ARE RETURNED, REMOVE LOCK
-	printf("Setting the lock back on key %d.\n", indata->key);
+	kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
+
+
+	xdrMsg * outdata = (xdrMsg *) malloc(sizeof(outdata));
+
+	outdata->key    = out_key;
+	outdata->value  = out_value;
+	outdata->status = out_status;
+
+
+	// RESPOND TO CLIENT AND WRITE TO THE LOG
+	log_write("server.log", "client", r_command);
+	return (outdata);
+
+}
+
+xdrMsg * server_rpc_del(xdrMsg * indata) {
+
+
+	// APPLY LOCK TO OUR KEY
+	char s_command[BUFFSIZE];
+	char r_command[BUFFSIZE];
+	sprintf(s_command, "RECV=DEL(%d)", indata->key);
+	log_write("server.log", "client", s_command);
+
+	// SEND PREPARE TO COMMIT TO ALL SERVERS  (WHEN A SERVER RECEIVED A 'PREPARE TO COMMIT, THEY APPLY A LOCK)
+	xdrMsg message    = { 0 };
+	xdrMsg response   = { 0 };
+
+	xdrMsg * outdata = (xdrMsg *) malloc(sizeof(outdata));
+
+	// ONLY MOVE FORWRD IF KEY EXISTS
+	if (kv_exists(kv_store, indata->key) < 0)
+	{
+		outdata->key = -1;
+		outdata->value = -1;
+		outdata->status = NACK;
+		sprintf(s_command, "SENT=KEYNOTFOUND(%d)", indata->key);
+		log_write("server.log", "client", s_command);
+		return(outdata);
+	}
+
+	kv_set_lock_status(kv_store, indata->key, KV_LOCKED);
+
+	int result;
+
+	// BUILD THE PREPARE MESSAGE
+	message.key    = indata->key;
+	message.value  = indata->value;
+	message.status = PREPARE;
+
+	// TELL ALL SERVERS TO PREPARE
+	int responses = 0;
+	for (int i = 0; i < server_count; i++) {
+		if (strcmp(myname, servers[i]) != 0) {
+			sprintf(s_command, "SENT=PREPARE(%d)", message.key);
+			log_write("server.log", servers[i], s_command);
+			int status = callrpc(servers[i],
+						RPC_PROG_NUM,
+						RPC_PROC_VER,
+						RPC_2PC,
+						xdr_rpc,
+						&message,
+						xdr_rpc,
+						&response);
+			if (status < 0)
+			{
+				sprintf(s_command, "RECV=SEND FAILURE");
+			} else if (response.status == READY) {
+				responses++;
+				sprintf(s_command, "RECV=READY(%d)", message.key);
+			} else {
+				sprintf(s_command, "RECV=NACK(%d)", message.key);
+			}
+		}
+	}
+
+//	printf("Received %d of the required %d READY responses.\n", responses, server_count-1);
+
+	// ONLY CONTINUE IF YOU HAVE ENOUGH READYS, OTHERWISE ABORT
+	if (responses >= server_count - 1) {
+		message.key    = indata->key;
+		message.value  = indata->value;
+		message.status = COMMIT_DEL;
+		sprintf(r_command, "DEL_SUCCESS(%d)", indata->key); //  message for client
+		sprintf(s_command, "COMMIT_DEL(%d)", indata->key);  // message for servers
+
+//		printf("Enough Responses, so I'm sending performing my change!!\n");
+
+		result = kv_del(kv_store, indata->key);
+
+		if (result == 0) {
+//			printf("The delete of key %d was successful.\n", indata->key);
+			outdata->key   = 0;
+			outdata->value = result;
+			outdata->status = OK;
+		} else {
+//			printf("The delete of key %d was NOT successful.\n", indata->key);
+			outdata->key   = -1;
+			outdata->value = 0;
+			outdata->status = OK;
+		}
+
+	} else {   //abort
+		sprintf(r_command, "DEL_FAILURE(%d)", indata->key);  // message for the client;
+		sprintf(s_command, "ABORT(%d)", indata->key);
+//		printf("I didn't get enough responses, so I'm aborting\n");
+		message.key    = -1;
+		message.value  = -1;
+		message.status = ABORT;
+	}
+
+	// SEND COMMIT (OR ABORT TO ALL SERVERS)
+	responses = 0;
+//	printf("Sending Status: %d to all servers! (Positive is commit, negative is abort!\n", message.status);
+	for (int i = 0; i < server_count; i++) {
+		if (strcmp(myname, servers[i]) != 0) {
+			log_write("server.log",servers[i], s_command);
+			int status = callrpc(servers[i],
+							RPC_PROG_NUM,
+							RPC_PROC_VER,
+							RPC_2PC,
+							xdr_rpc,
+							&message,
+							xdr_rpc,
+							&response);
+
+			if (status < 0)
+			{
+				sprintf(s_command, "RECV=SEND FAILURE");
+			} else if (response.status == OK) {
+				responses++;
+				sprintf(s_command, "RECV=OK");
+			} else {
+				sprintf(s_command, "RECV=NACK");
+			}
+
+			log_write("server.log", servers[i], s_command);
+		}
+	}
+
+	//WHEN ALL OKAYS ARE RETURNED, REMOVE LOCK
+//	printf("Setting the lock back on key %d.\n", indata->key);
 	kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
 
 	// RESPOND TO CLIENT AND WRITE TO THE LOCK
-	char s_command[BUFFSIZE];
-	sprintf(s_command, "PUT Key=%d Value=%d", indata->key, indata->value);
-	log_write("server.log", "unknown (RPC)", "(unknown RPC)", 0, s_command, 1);
-
-	sprintf(s_command, "Key=%d,Value=%d", outdata.key, outdata.value);
-	log_write("server.log", "unknown (RPC)", "unknown (RPC)", 0, s_command, 0);
-
-	printf("Responding to client with key: %d and status: %d", outdata.key, outdata.status);
-
-	return (&outdata);
-
+	log_write("server.log", "client", r_command);
+	return (outdata);
 }
 
 xdrMsg * server_rpc_2pc(xdrMsg * indata) {
 
 	xdrMsg outdata = { 0 };
+	char s_command[BUFFSIZE];
+	char r_command[BUFFSIZE];
 	switch (indata->status) {
 	case PREPARE:
-		printf("Received a PREPARE for key %d.\n", indata->key);
-		printf("Checking lock!\n");
-		if (kv_get_lock_status(kv_store, indata->key) == KV_LOCKED) {
+		sprintf(s_command, "RECV=PREPARE(%d)", indata->key);
+		log_write("server.log", "Coordinator", s_command);
+		if (kv_get_lock_status(kv_store, indata->key) == KV_LOCKED)
+		{
+			sprintf(r_command, "SENT=NACK(%d)", indata->key);
 			outdata.status = NACK;
-			printf("Key Locked! Responding with NACK!\n");
 		} else {
-			printf("Key Unlocked! Setting lock and Responding with READY!\n");
+			sprintf(r_command, "SENT=READY(%d)", indata->key);
 			kv_set_lock_status(kv_store, indata->key, KV_LOCKED);
 			outdata.status = READY;
 		}
 		break;
 
 	case COMMIT_PUT:
-		printf("Received a COMMIT_PUT!\n");
-		printf("Putting  value: %d into key: %d\n", indata->value, indata->key);
+		sprintf(s_command, "RECV=COMMIT_PUT(%d,%d)", indata->key, indata->value);
+		log_write("server.log", "Coordinator", s_command);
 		kv_put(kv_store, indata->key, indata->value);
-		printf("Removing lock!\n");
 		kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
 		outdata.status = OK;
+		sprintf(r_command, "SENT=OK(%d)", indata->key);
 		break;
 
 	case COMMIT_DEL:
+		sprintf(s_command, "RECV=COMMIT_DEL(%d)", indata->key);
+		log_write("server.log", "Coordinator", s_command);
 		kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
 		kv_del(kv_store, indata->key);
 		outdata.status = OK;
+		sprintf(r_command, "SENT=OK(%d)", indata->key);
 		break;
 
 	case ABORT:
+		sprintf(s_command, "RECV=ABORT(%d)", indata->key);
+		log_write("server.log", "Coordinator", s_command);
 		kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
 		outdata.status = OK;
+		sprintf(r_command, "SENT=OK(%d)", indata->key);
 		break;
 
 	default:
+		sprintf(s_command, "RECV=BADCOMMAND");
+		log_write("server.log","Coordinator", s_command);
 		outdata.status = NACK;
+		sprintf(r_command, "SENT=NACK");
 		break;
 	}
 
-
-	printf("Responding with status: %d.\n", outdata.status);
+	// RESPOND WITH MESSAGE.
+	log_write("server.log","Coordinator", r_command);
 	return (&outdata);
 
 }
@@ -210,114 +385,6 @@ xdrMsg * server_rpc_2pc(xdrMsg * indata) {
  * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE      *
  * MESSAGE PROVIDED BY THE RPC CALLER.                   *
  *******************************************************/
-xdrMsg * server_rpc_del(xdrMsg * indata) {
-
-	// APPLY LOCK TO OUR KEY
-	printf("About to DELETE key: %d\n", indata->key);
-	printf("Coordinator: Applying lock to Key: %d\n", indata->key);
-	kv_set_lock_status(kv_store, indata->key, KV_LOCKED);
-
-	// SEND PREPARE TO COMMIT TO ALL SERVERS  (WHEN A SERVER RECEIVED A 'PREPARE TO COMMIT, THEY APPLY A LOCK)
-	xdrMsg message = { 0 };
-	xdrMsg response = { 0 };
-	xdrMsg outdata = { 0 };
-
-	int result;
-
-	message.key    = indata->key;
-	message.value  = indata->value;
-	message.status = PREPARE;
-
-	// tell all servers to prepare! (this will be a loop)
-	printf("Sending PREPEARE to All Servers!\n");
-	int responses = 0;
-	for (int i = 0; i < server_count; i++) {
-		printf("Sending Prepare to %s.\n", servers[i]);
-		if (strcmp(myname, servers[i]) != 0) {
-			int status = callrpc(servers[i],
-						RPC_PROG_NUM,
-						RPC_PROC_VER,
-						RPC_2PC,
-						xdr_rpc,
-						&message,
-						xdr_rpc,
-						&response);
-			printf("Server %s Resonded with %d.\n", servers[i], response.status);
-			if (status >= 0 && response.status == READY)
-				responses++;
-		}
-	}
-
-	printf("Received %d of the required %d READY responses.\n", responses, server_count-1);
-
-	// ONLY CONTINUE IF YOU HAVE ENOUGH READYS, OTHERWISE ABORT
-	if (responses >= server_count - 1) {
-		message.key    = indata->key;
-		message.value  = indata->value;
-		message.status = COMMIT_DEL;
-
-		printf("Enough Responses, so I'm sending performing my change!!\n");
-
-		result = kv_put(kv_store, indata->key, indata->value);
-
-		if (result == 0) {
-			printf("The delete of key %d was successful.\n", indata->key);
-			outdata.key   = 0;
-			outdata.value = result;
-			outdata.status = OK;
-		} else {
-			printf("The delete of key %d was NOT successful.\n", indata->key);
-			outdata.key   = -1;
-			outdata.value = 0;
-			outdata.status = OK;
-		}
-
-	} else {   //abort
-		printf("I didn't get enough responses, so I'm aborting\n");
-		message.key    = -1;
-		message.value  = -1;
-		message.status = ABORT;
-	}
-
-	// SEND COMMIT (OR ABORT TO ALL SERVERS)
-	responses = 0;
-	printf("Sending Status: %d to all servers! (Positive is commit, negative is abort!\n", message.status);
-	for (int i = 0; i < server_count; i++) {
-		if (strcmp(myname, servers[i]) != 0) {
-			printf("  Sending to server: %s.\n", servers[i]);
-			int status = callrpc(servers[i],
-							RPC_PROG_NUM,
-							RPC_PROC_VER,
-							RPC_2PC,
-							xdr_rpc,
-							&message,
-							xdr_rpc,
-							&response);
-			printf("  Received from server: %d.\n", response.status);
-			if (status >= 0 && response.status == OK)
-				responses++;
-			else
-				printf("COMMIT RESPONSE FAILED");
-		}
-	}
-
-	//WHEN ALL OKAYS ARE RETURNED, REMOVE LOCK
-	printf("Setting the lock back on key %d.\n", indata->key);
-	kv_set_lock_status(kv_store, indata->key, KV_UNLOCKED);
-
-	// RESPOND TO CLIENT AND WRITE TO THE LOCK
-	char s_command[BUFFSIZE];
-	sprintf(s_command, "DEL Key=%d Value=NA", indata->key);
-	log_write("server.log", "unknown (RPC)", "(unknown RPC)", 0, s_command, 1);
-
-	sprintf(s_command, "Key=%d,Value=NA", outdata.key);
-	log_write("server.log", "unknown (RPC)", "unknown (RPC)", 0, s_command, 0);
-
-	printf("Responding to client with key: %d and status: %d", outdata.key, outdata.status);
-
-	return (&outdata);
-}
-
 /********************************************************
  * THE FUNCTION CALLED BY THE MAIN MENU THAT SETSUP THE *
  * RPC FUNCTIONS AND BEGINS TO LISTEN FOR INCOMING      *
@@ -386,90 +453,90 @@ int server_rpc_init(char** servers_list, int the_server_count) {
  * KILLED.  WILL FAIL IF SOCKETS ARE      *
  * UNABLE TO BE CREATED, BOUND, ETC.      *
  *****************************************/
-int server_tcp_init(unsigned short port_num) {
-	printf("You are running TCP Server on port number: %d.\n", port_num);
-
-	// CREATE A NEW KEY VALUE STORE
-
-	kv_store = kv_new();
-
-	struct sockaddr_in server;
-
-	/* Create socket for incoming connections */
-	int sock = socket(AF_INET, SOCK_STREAM, 0);
-	// USE SOCK_DGRAM INSTEAD OF SOCK_STREAM
-	if (sock < 0)
-		ServerErrorHandle("socket() failed: ");
-
-	/* Construct local address structure */
-	bzero(&server, sizeof(server));
-	server.sin_family = AF_INET;
-	server.sin_port = htons(port_num);
-	server.sin_addr.s_addr = INADDR_ANY;
-
-	/* Bind to the local address */
-	int bindsock = bind(sock, (struct sockaddr *) &server, sizeof(server));
-	if (bindsock < 0)
-		ServerErrorHandle("bind() failed: ");
-
-	/* Listen to the incoming socket */
-	int listensock = listen(sock, MAXPENDING);
-	if (listensock < 0)
-		ServerErrorHandle("listen() failed: ");
-
-	int client_sock;
-	struct sockaddr_in client;
-	int client_len = sizeof(client);
-
-	char buf[BUFFSIZE]; /* message buffer */
-	char response[BUFFSIZE];
-	char *client_ip;
-	int n;
-	int result;
-	struct hostent *client_name; /* client host info */
-
-	printf("Waiting for input...\n");
-
-	while (1) {
-		client_sock = accept(sock, (struct sockaddr *) &client, &client_len);
-		if (client_sock == -1)
-			ServerErrorHandle("accept() failed: ");
-
-		// GET CLIENT INFO
-		client_name = gethostbyaddr((const char *) &client.sin_addr.s_addr,
-				sizeof(client.sin_addr.s_addr), AF_INET);
-
-		if (client_name == NULL || client_ip == NULL)
-			ServerErrorHandle("host unknown");
-
-		client_ip = inet_ntoa(client.sin_addr);
-
-		while (1) {  //HANDLE INCOMING MESSAGE
-			bzero(buf, BUFFSIZE);  //ZERO OUT BUFFER
-			n = recv(client_sock, buf, BUFFSIZE, MSG_WAITALL);
-			if (n < 0)
-				ServerErrorHandle("read() failed: ");
-			else if (n == 0) //CONNECTION CLOSED
-				break;
-
-			if (strlen(buf) > 1) {
-				log_write("server.log", client_name->h_name, client_ip,
-						port_num, buf, 1);
-				bzero(response, BUFFSIZE);
-				result = server_handle_message(buf, response);
-				n = send(client_sock, response, BUFFSIZE, 0);
-				if (n < 0)
-					printf("Responding Failed\n"); //ServerErrorHandle("write failed: ");
-				log_write("server.log", client_name->h_name, client_ip,
-						port_num, response, 0);
-			}
-		} //CLOSE INNER WHILE
-		close(client_sock);
-
-	}
-
-	return (0);
-}
+//int server_tcp_init(unsigned short port_num) {
+//	printf("You are running TCP Server on port number: %d.\n", port_num);
+//
+//	// CREATE A NEW KEY VALUE STORE
+//
+//	kv_store = kv_new();
+//
+//	struct sockaddr_in server;
+//
+//	/* Create socket for incoming connections */
+//	int sock = socket(AF_INET, SOCK_STREAM, 0);
+//	// USE SOCK_DGRAM INSTEAD OF SOCK_STREAM
+//	if (sock < 0)
+//		ServerErrorHandle("socket() failed: ");
+//
+//	/* Construct local address structure */
+//	bzero(&server, sizeof(server));
+//	server.sin_family = AF_INET;
+//	server.sin_port = htons(port_num);
+//	server.sin_addr.s_addr = INADDR_ANY;
+//
+//	/* Bind to the local address */
+//	int bindsock = bind(sock, (struct sockaddr *) &server, sizeof(server));
+//	if (bindsock < 0)
+//		ServerErrorHandle("bind() failed: ");
+//
+//	/* Listen to the incoming socket */
+//	int listensock = listen(sock, MAXPENDING);
+//	if (listensock < 0)
+//		ServerErrorHandle("listen() failed: ");
+//
+//	int client_sock;
+//	struct sockaddr_in client;
+//	int client_len = sizeof(client);
+//
+//	char buf[BUFFSIZE]; /* message buffer */
+//	char response[BUFFSIZE];
+//	char *client_ip;
+//	int n;
+//	int result;
+//	struct hostent *client_name; /* client host info */
+//
+//	printf("Waiting for input...\n");
+//
+//	while (1) {
+//		client_sock = accept(sock, (struct sockaddr *) &client, &client_len);
+//		if (client_sock == -1)
+//			ServerErrorHandle("accept() failed: ");
+//
+//		// GET CLIENT INFO
+//		client_name = gethostbyaddr((const char *) &client.sin_addr.s_addr,
+//				sizeof(client.sin_addr.s_addr), AF_INET);
+//
+//		if (client_name == NULL || client_ip == NULL)
+//			ServerErrorHandle("host unknown");
+//
+//		client_ip = inet_ntoa(client.sin_addr);
+//
+//		while (1) {  //HANDLE INCOMING MESSAGE
+//			bzero(buf, BUFFSIZE);  //ZERO OUT BUFFER
+//			n = recv(client_sock, buf, BUFFSIZE, MSG_WAITALL);
+//			if (n < 0)
+//				ServerErrorHandle("read() failed: ");
+//			else if (n == 0) //CONNECTION CLOSED
+//				break;
+//
+//			if (strlen(buf) > 1) {
+//				log_write("server.log", client_name->h_name, client_ip,
+//						port_num, buf, 1);
+//				bzero(response, BUFFSIZE);
+//				result = server_handle_message(buf, response);
+//				n = send(client_sock, response, BUFFSIZE, 0);
+//				if (n < 0)
+//					printf("Responding Failed\n"); //ServerErrorHandle("write failed: ");
+//				log_write("server.log", client_name->h_name, client_ip,
+//						port_num, response, 0);
+//			}
+//		} //CLOSE INNER WHILE
+//		close(client_sock);
+//
+//	}
+//
+//	return (0);
+//}
 
 /******************************************
  * LAUNCHES A UDP SERVER TO LISTEN ON THE *
@@ -477,78 +544,78 @@ int server_tcp_init(unsigned short port_num) {
  * KILLED.  WILL FAIL IF SOCKETS ARE      *
  * UNABLE TO BE CREATED, BOUND, ETC.      *
  *****************************************/
-int server_udp_init(unsigned short port_num) {
-	printf("You are running UDP Server on port number: %d.\n", port_num);
-
-	// CREATE A NEW KEY VALUE STORE
-	kv_store = kv_new();
-
-	struct sockaddr_in server;
-
-	/* Create socket for incoming connections */
-	int sock = socket(AF_INET, SOCK_DGRAM, 0);
-	// USE SOCK_DGRAM INSTEAD OF SOCK_STREAM
-	if (sock < 0)
-		ServerErrorHandle("socket() failed: ");
-
-	/* Construct local address structure */
-	bzero(&server, sizeof(server));
-	server.sin_family = AF_INET;
-	server.sin_port = htons(port_num);
-	server.sin_addr.s_addr = INADDR_ANY;
-
-	/* Bind to the local address */
-	int bindsock = bind(sock, (struct sockaddr *) &server, sizeof(server));
-	if (bindsock < 0)
-		ServerErrorHandle("bind() failed: ");
-
-	struct sockaddr_in client;
-	int client_len = sizeof(client);
-
-	char buf[BUFFSIZE]; /* message buffer */
-	char response[BUFFSIZE];
-	char *client_ip;
-	int n;
-	struct hostent *client_name; /* client host info */
-
-	printf("Waiting for input...\n");
-
-	while (1) {
-		bzero(buf, BUFFSIZE);  //ZERO OUT BUFFER
-		n = recvfrom(sock, buf, BUFFSIZE, 0, (struct sockaddr*) &client,
-				&client_len);
-		if (n < 0)
-			ServerErrorHandle("recvfrom() failed");
-
-		client_name = gethostbyaddr((const char *) &client.sin_addr.s_addr,
-				sizeof(client.sin_addr.s_addr), AF_INET);
-
-		client_ip = inet_ntoa(client.sin_addr);
-		if (client_name == NULL || client_ip == NULL)
-			ServerErrorHandle("host unknown");
-
-		if (strlen(buf) > 1) {
-			// WRITE THE MESSAGE RECEIVED TO THE SERVER LOG
-			log_write("server.log", client_name->h_name, client_ip, port_num,
-					buf, 1);
-
-			// PROCESS THE MESSAGE
-			bzero(response, BUFFSIZE);
-			int result = server_handle_message(buf, response);
-
-			// RESPOND WITH RESULTS
-			n = sendto(sock, response, BUFFSIZE, 0, (struct sockaddr *) &client,
-					client_len);
-			log_write("server.log", client_name->h_name, client_ip, port_num,
-					response, 0);
-
-			if (n < 0)
-				printf("Responding Failed\n"); //ServerErrorHandle("write failed: ");
-		}
-	}
-	close(sock);
-	return (0);
-}
+//int server_udp_init(unsigned short port_num) {
+//	printf("You are running UDP Server on port number: %d.\n", port_num);
+//
+//	// CREATE A NEW KEY VALUE STORE
+//	kv_store = kv_new();
+//
+//	struct sockaddr_in server;
+//
+//	/* Create socket for incoming connections */
+//	int sock = socket(AF_INET, SOCK_DGRAM, 0);
+//	// USE SOCK_DGRAM INSTEAD OF SOCK_STREAM
+//	if (sock < 0)
+//		ServerErrorHandle("socket() failed: ");
+//
+//	/* Construct local address structure */
+//	bzero(&server, sizeof(server));
+//	server.sin_family = AF_INET;
+//	server.sin_port = htons(port_num);
+//	server.sin_addr.s_addr = INADDR_ANY;
+//
+//	/* Bind to the local address */
+//	int bindsock = bind(sock, (struct sockaddr *) &server, sizeof(server));
+//	if (bindsock < 0)
+//		ServerErrorHandle("bind() failed: ");
+//
+//	struct sockaddr_in client;
+//	int client_len = sizeof(client);
+//
+//	char buf[BUFFSIZE]; /* message buffer */
+//	char response[BUFFSIZE];
+//	char *client_ip;
+//	int n;
+//	struct hostent *client_name; /* client host info */
+//
+//	printf("Waiting for input...\n");
+//
+//	while (1) {
+//		bzero(buf, BUFFSIZE);  //ZERO OUT BUFFER
+//		n = recvfrom(sock, buf, BUFFSIZE, 0, (struct sockaddr*) &client,
+//				&client_len);
+//		if (n < 0)
+//			ServerErrorHandle("recvfrom() failed");
+//
+//		client_name = gethostbyaddr((const char *) &client.sin_addr.s_addr,
+//				sizeof(client.sin_addr.s_addr), AF_INET);
+//
+//		client_ip = inet_ntoa(client.sin_addr);
+//		if (client_name == NULL || client_ip == NULL)
+//			ServerErrorHandle("host unknown");
+//
+//		if (strlen(buf) > 1) {
+//			// WRITE THE MESSAGE RECEIVED TO THE SERVER LOG
+//			log_write("server.log", client_name->h_name, client_ip, port_num,
+//					buf, 1);
+//
+//			// PROCESS THE MESSAGE
+//			bzero(response, BUFFSIZE);
+//			int result = server_handle_message(buf, response);
+//
+//			// RESPOND WITH RESULTS
+//			n = sendto(sock, response, BUFFSIZE, 0, (struct sockaddr *) &client,
+//					client_len);
+//			log_write("server.log", client_name->h_name, client_ip, port_num,
+//					response, 0);
+//
+//			if (n < 0)
+//				printf("Responding Failed\n"); //ServerErrorHandle("write failed: ");
+//		}
+//	}
+//	close(sock);
+//	return (0);
+//}
 
 /******************************************
  * INTERPRETS THE MESSAGE RECEIVED BY THE *
