@@ -37,8 +37,10 @@ int log_write(char* filename, char * host, char * ip, int port, char * message, 
 	} else {
 		char timestamp[30];
 		buildTimeStamp(timestamp);
-		fprintf(fd, "{{Time=%s},{Host=%s},{ip=%s},{Port=%d},{%s=%s}}\n", timestamp, host, ip, port, msg, message);
-		printf("{{Time=%s},{Host=%s},{ip=%s},{Port=%d},{%s=%s}}\n", timestamp, host, ip, port, msg, message);
+		//fprintf(fd, "{{Time=%s},{Host=%s},{ip=%s},{Port=%d},{%s=%s}}\n", timestamp, host, ip, port, msg, message);
+		//printf("{{Time=%s},{Host=%s},{ip=%s},{Port=%d},{%s=%s}}\n", timestamp, host, ip, port, msg, message);
+		fprintf(fd, "{{Time=%s},{Host=%s},{ip=%s},{%s=%s}}\n", timestamp, host, ip, msg, message);
+		printf("{{Time=%s},{Host=%s},{ip=%s},{%s=%s}}\n", timestamp, host, ip, msg, message);
 		fclose(fd);
 		return 0;
 	}
