@@ -337,7 +337,7 @@ char * client_ui_get_command_word(int command)
 int client_ui_get_command(int * command)
 {
 	char user_input[128];
-	printf("Please Choose a Command:\n  1. GET\n  2. PUT\n  3. DEL\n  4. Run Script (PUT/GET/DEL to random servers) \n Q. Quit\n>> ");
+	printf("Please Choose a Command:\n  1. GET\n  2. PUT\n  3. DEL\n  4. Run Script\n Q. Quit\n>> ");
 	fgets(user_input, 128, stdin);
 
 	switch (user_input[0]) {
