@@ -183,6 +183,9 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 
 	// RESPOND TO CLIENT AND WRITE TO THE LOG
 	log_write("server.log", "client", r_command);
+
+	// FREE THE DATA FOR NEXT TIME;
+	xdr_free(xdr_rpc, outdata);
 	return (outdata);
 
 }
@@ -318,6 +321,7 @@ xdrMsg * server_rpc_del(xdrMsg * indata) {
 
 	// RESPOND TO CLIENT AND WRITE TO THE LOCK
 	log_write("server.log", "client", r_command);
+	xdr_free(xdr_rpc, outdata);
 	return (outdata);
 }
 
