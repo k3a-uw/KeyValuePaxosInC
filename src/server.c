@@ -18,6 +18,7 @@ char** servers;
 char myname[1024];
 int server_count;
 
+
 /********************************************************
  * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR GETTING *
  * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE     *
