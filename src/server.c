@@ -89,7 +89,7 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 						&message,
 						xdr_rpc,
 						&response);
-			if (status < 0)
+			if (status != 0)
 			{
 				sprintf(s_command, "RECV=SEND FAILURE");
 			} else if(response.status == READY) {
@@ -158,7 +158,7 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 							&message,
 							xdr_rpc,
 							&response);
-			if (status < 0) {
+			if (status != 0) {
 				sprintf(s_command, "RECV=SEND FAILURE");
 			} else if (response.status == OK) {
 				responses++;
@@ -239,7 +239,7 @@ xdrMsg * server_rpc_del(xdrMsg * indata) {
 						&message,
 						xdr_rpc,
 						&response);
-			if (status < 0)
+			if (status != 0)
 			{
 				sprintf(s_command, "RECV=SEND FAILURE");
 			} else if (response.status == READY) {
@@ -301,7 +301,7 @@ xdrMsg * server_rpc_del(xdrMsg * indata) {
 							xdr_rpc,
 							&response);
 
-			if (status < 0)
+			if (status != 0)
 			{
 				sprintf(s_command, "RECV=SEND FAILURE");
 			} else if (response.status == OK) {

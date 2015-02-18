@@ -47,7 +47,7 @@ int client_rpc_send(char* hostname, int command, xdrMsg * message, xdrMsg * resp
 
 	int status = callrpc(hostname, RPC_PROG_NUM, RPC_PROC_VER, command, xdr_rpc, message, xdr_rpc, response);
 
-	if (status < 0)
+	if (status != 0)
 	{
 		log_write("client.log", hostname, "RECV=SEND_FAILURE");
 	} else {
@@ -551,7 +551,7 @@ int client_ui(char** servers, int server_count) {
 
 			int status = client_rpc_send(servers[server_index], command, &message, &response);
 
-			if (status < 0)
+			if (status != 0)
 				printf("Message failed!\n");
 			else
 				printf("Send Successful!\n Perform another command...\n\n");
