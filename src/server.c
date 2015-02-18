@@ -28,24 +28,28 @@ xdrMsg * server_rpc_get(xdrMsg * indata) {
 	char s_command[BUFFSIZE];
 	sprintf(s_command, "RECV=GET(%d)", indata->key);
 	log_write("server.log", myname, s_command);
-	xdrMsg outdata;
+	xdrMsg* outdata = (xdrMsg *) malloc(sizeof(outdata));
 	int value;
 	int result = kv_get(kv_store, indata->key, &value);
 
 	if (result == 0) {
 		sprintf(s_command, "SENT=VALUE(%d)", value);
-		outdata.key    = 0;
-		outdata.value  = value;
-		outdata.status = OK;
+		outdata->key    = 0;
+		outdata->value  = value;
+		outdata->status = OK;
 	} else {
 		sprintf(s_command, "SENT=KEYNOTFOUND(%d)", indata->key);
-		outdata.key    = -1;
-		outdata.value  = 0;
-		outdata.status = OK;
+		outdata->key    = -1;
+		outdata->value  = 0;
+		outdata->status = OK;
 	}
 
+
+
+	xdr_free(xdr_rpc, outdata);
+
 	log_write("server.log", myname, s_command);
-	return (&outdata);
+	return (outdata);
 
 }
 
