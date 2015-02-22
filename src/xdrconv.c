@@ -29,3 +29,9 @@ int xdr_rpc(XDR * xdr, xdrMsg * content)
 
 		return (1);
 }
+
+
+int xdr_compare(xdrMsg * a, xdrMsg * b)
+{
+	// if key, value and command are the same, return 1 else -1
+}
