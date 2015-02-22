@@ -18,12 +18,18 @@ char** servers;
 char myname[1024];
 int server_count;
 
+int my_lc  = -1;  // my lamport clock (for proposals)
+int hpc    = -1;  //my highest promised clock
+xdrMsg hpv = { 0 };  // my highest proposed value
+
 
 /********************************************************
  * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR GETTING *
  * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE     *
  * MESSAGE PROVIDED BY THE RPC CALLER.                  *
  *******************************************************/
+
+// PROPOSER CODE
 xdrMsg * server_rpc_get(xdrMsg * indata) {
 	char s_command[BUFFSIZE];
 	sprintf(s_command, "RECV=GET(%d)", indata->key);
@@ -58,6 +64,7 @@ xdrMsg * server_rpc_get(xdrMsg * indata) {
  * A VALUE INTO THE KEY VALUE STORE.  INDATA IS THE     *
  * MESSAGE PROVIDED BY THE RPC CALLER.                  *
  *******************************************************/
+// PROPOSER CODE
 xdrMsg * server_rpc_put(xdrMsg * indata) {
 
 	char s_command[BUFFSIZE];
@@ -194,8 +201,8 @@ xdrMsg * server_rpc_put(xdrMsg * indata) {
 
 }
 
+// PROPOSER CODE
 xdrMsg * server_rpc_del(xdrMsg * indata) {
-
 
 	// APPLY LOCK TO OUR KEY
 	char s_command[BUFFSIZE];
@@ -329,6 +336,145 @@ xdrMsg * server_rpc_del(xdrMsg * indata) {
 	return (outdata);
 }
 
+// CODE THE ACCEPTER WILL RUN WHEN IT RECEIVES AN ACCEPT
+xdrMsg * acceptor_accept(xdrMsg * indata)
+{
+	// IF STATE != ACCEPTING
+	  // OUTDATA.STATUS = NACK
+	// ELSE
+	  // IF COMPARE(INDATA, HPV) = 1  // THEY MATCH
+	    // SET STATE TO != ACCEPTING
+	    // SEND LEARN(INDATA) TO 'ALL LEARNERS'  EW!
+	  // ELSE
+	    // SEND NACK
+
+}
+
+// CODE THE ACCEPTER WILL RUN WHEN IT RECEIVES A PREPARE
+xdrMsg * acceptor_prepare(xdrMsg * indata)
+{
+	// IF STATE = ACCEPTING
+	   // IF HPC < INDATA.LC
+	     // OUTDATA.LC = INDATA.LC
+	     // OUTDATA.VALUE = HPV
+	     // OUDATA.STATUS = PROMISE
+	     // RESPOND OUTDATA
+	   // ELSE
+	     // OUTDATA.LC = HPC
+	     // OUTDATA.VALUE = HPV
+	     // OUTDATA.STATUS = NACK
+	     // RESPOND OUTDATA
+	// ELSE  (NO PROMISES TO ANYONE!)
+	  // IF HPC < INDATA.LC
+         // STATE = ACCEPTING
+	     // HPC = INDATA.LC
+	     // HPV = INDATA.VALUE
+	     // OUTDATA.LC = HPC
+	     // OUTDATA.VALUE = HPV
+	     // OUTDATA.STATUS = PROMISE
+	     // RESPOND OUTDATA
+	  // ELSE
+	     // OUTDATA.LC = HPC
+	     // OUTDATA.VALUE = HPV
+	     // OUTDATA.STATUS = NACK
+	     // RESPOND OUTDATA
+}
+
+
+// CODE THE LEARNER WILL RUN WHEN IT RECEIVES A LEARN FROM ACCEPTOR
+xdrMsg * learner_learn(xdrMsg * indata)
+{
+
+	// SWITCH INDATA.COMMAND
+	// CASE PUT
+	  // PUT(KV_STORE, INDATA.KEY, INDATA,VALUE)
+	  // IF PUT IS GOOD
+	     // OUTDATA.STATUS = OK
+	  // ELSE
+	     // OUTDATA.STATUS = FAILURE
+      // RETURN OUTDATA
+	// CASE DEL
+	  // DEL(KV_STORE, INDATA.KEY)
+	  // IF DEL IS GOOD
+	     // OUTDATA.STATUS = OK
+	  // ELSE
+	     // OUTDATA.STATUS = FAILURE
+      // RETURN OUTDATA
+	// DEFAULT
+	  // SEND NACK
+
+}
+
+xdrMsg * learner_get(xdrMsg * indata)
+{
+	// LOOKUP VALUE
+	// OUTDATA.KEY = INDATA.KEY
+	// OUTDATA.VALUE = GET(KV_STORE, INDATA.KEY)
+	// OUTDATA.STATUS = OK
+	// RESPOND OUTDATA
+}
+
+// CODE THE PROPOSER WILL RUN WHEN A CLIENT SEND A GET
+xdrMsg * proposer_get(xdrMsg * indata)
+{
+	// MY_LC++;
+	// SEND LEARN_GET TO ALL LEARNERS
+
+	// GATHER RESPONSES
+
+	// IF QUORUM
+	//   RESPOND WITH VALUE
+	// ELSE
+	//   RESPOND WITH FAILURE
+
+}
+
+// CODE THE PROPOSER WILL RUN WHEN A CLIENT SEND A GET
+xdrMsg * proposer_put(xdrMsg * indata)
+{
+	// MY_LC++;
+
+	// BUILD PREPARE MESSAGE
+	// SEND PREPARE(MESSAGE) TO ACCEPTORS
+
+	// GATHER RESPONSES
+	  //  MY_LC = MAX(RESPONSE_X.LC, MY_LC)
+
+	// IF NOT QUORUM
+	   // RETURN WITH FAILURE
+	// ELSE
+	   // IF QUORUM.VALUE != INDATA.VALUE
+	      // RETURN WITH FAILURE
+	   // ELSE
+	      // INDATA.STATUS = ACCEPT
+	      // SEND ACCEPT(MESSAGE)
+
+}
+
+// CODE THE PROPOSER WILL RUN WHEN A CLIENT SEND A GET
+xdrMsg * proposer_del(xdrMsg * indata)
+{
+	// MY_LC++;
+
+	// BUILD PREPARE MESSAGE
+	// SEND PREPARE(MESSAGE) TO ACCEPTORS
+
+	// GATHER RESPONSES
+	  //  MY_LC = MAX(RESPONSE_X.LC, MY_LC)
+
+	// IF NOT QUORUM
+	   // RETURN WITH FAILURE
+	// ELSE
+	   // IF QUORUM.VALUE != INDATA.VALUE
+	      // RETURN WITH FAILURE
+	   // ELSE
+	      // INDATA.STATUS = ACCEPT
+	      // SEND ACCEPT(MESSAGE)
+
+}
+
+
+// ACCEPTER CODE
 xdrMsg * server_rpc_2pc(xdrMsg * indata) {
 
 	xdrMsg outdata = { 0 };
