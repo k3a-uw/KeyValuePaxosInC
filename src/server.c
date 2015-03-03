@@ -17,10 +17,16 @@ kv* kv_store;
 char** servers;
 char myname[1024];
 int server_count;
+int quarom_count;
 
 int my_lc  = -1;  // my lamport clock (for proposals)
 int hpc    = -1;  //my highest promised clock
 xdrMsg hpv = { 0 };  // my highest proposed value
+
+xdrMsg outdata_get = { 0 };
+xdrMsg outdata_put = { 0 };
+xdrMsg outdata_del = { 0 };
+xdrMsg outdata_learn_get = { 0 };
 
 
 /********************************************************
@@ -407,25 +413,167 @@ xdrMsg * learner_learn(xdrMsg * indata)
 
 xdrMsg * learner_get(xdrMsg * indata)
 {
-	// LOOKUP VALUE
-	// OUTDATA.KEY = INDATA.KEY
-	// OUTDATA.VALUE = GET(KV_STORE, INDATA.KEY)
-	// OUTDATA.STATUS = OK
-	// RESPOND OUTDATA
+	char s_command[BUFFSIZE];
+
+	sprintf(s_command, "RECV=GET(%d)", indata->key);
+	log_write("server.log", "Proposer", s_command);
+	int value;
+	int result = kv_get(kv_store, indata->key, &value);
+
+	if (result == 0) {
+		outdata_learn_get.key = indata->key;
+		outdata_learn_get.value = value;
+		outdata_learn_get.status = OK;
+		outdata_learn_get.lc = my_lc;
+		outdata_learn_get.pid = 0;
+		sprintf(s_command, "SEND=OK(%d)", outdata_learn_get.value);
+	} else {  // KEY NOT FOUND
+		outdata_learn_get.key = indata->key;
+		outdata_learn_get.value = -1;
+		outdata_learn_get.status = NACK;
+		outdata_learn_get.lc = my_lc;
+		outdata_learn_get.pid = 0;
+		sprintf(s_command, "SEND=NACK");
+	}
+
+	log_write("server.log", "Proposer", s_command);
+	return(&outdata_learn_get);
 }
 
 // CODE THE PROPOSER WILL RUN WHEN A CLIENT SEND A GET
 xdrMsg * proposer_get(xdrMsg * indata)
 {
-	// MY_LC++;
+	my_lc = my_lc + 1;
+	char s_command[BUFFSIZE];
+	sprintf(s_command, "RECV=GET(%d)", indata->key);
+	log_write("server.log", "client", s_command);
+
+	xdrMsg message  = { 0 };
+	xdrMsg response = { 0 };
+
+	// SETUP THE MESSAGE TO SEND TO ALL LEARNERS.
+	message.key     = indata->key;
+	message.value   = -1;
+	message.status  = OK;
+	message.command = RPC_GET;
+	message.lc      = my_lc;
+	message.pid     = 0;  //TODO FIGURE OUT PROCESS IDS
+
+	int responses[quarom_count][3];  //three columns, 0 = live value, 1 = value, 2 = count;
+
+	// INITIALIZE THE RESPONSES ARRAY
+	for (int i = 0; i < quarom_count; i++)
+	{
+		responses[i][0] =  -1;
+		responses[i][1] =  0;
+		responses[i][2] =  0;
+	}
+
 	// SEND LEARN_GET TO ALL LEARNERS
+	int have_quarom = 0;
+	int quarom_value = -1;
+	for (int i = 0; i < server_count ; i++)
+	{
+		int response_value = 0;
+		int response_status = NACK;
+		int status;
+		sprintf(s_command, "SEND=LEARNER_GET(%d)", indata->key);
+		if (strcmp(myname, servers[i]) == 0)
+		{  // GET THE VALUE FROM LOCAL
+			log_write("server.log", "localhost", s_command);
+			status = kv_get(kv_store, indata->key, &response_value);
+			response_status = OK;
+			if (status == 0)
+			{
+				sprintf(s_command, "RECV=OK(%d)", response_value);
+			} else {
+				sprintf(s_command, "RECV=NACK");
+			}
+			log_write("server.log", "localhost", s_command);
+		} else {
+			// GET THE VALUE FROM REMOTE;
+			log_write("server.log", servers[i], s_command);
+			status = callrpc(servers[i],
+					RPC_PROG_NUM,
+					RPC_PROC_VER,
+					RPC_LEARN_GET,
+					xdr_rpc,
+					&message,
+					xdr_rpc,
+					&response);
 
-	// GATHER RESPONSES
+			response_status = response.status;
+			response_value  = response.value;
 
-	// IF QUORUM
-	//   RESPOND WITH VALUE
-	// ELSE
-	//   RESPOND WITH FAILURE
+			if (status == 0 && response_status == OK)
+			{
+				sprintf(s_command, "RECV=OK(%d)", response.value);
+			} else {
+				sprintf(s_command, "RECV=NACK");
+			}
+
+			log_write("server.log",servers[i], s_command);
+
+		}
+
+
+		// STORE THE VALUE TO GET A QUAROM.
+		if (status == 0 && response_status == OK)  // IF WE HAVE A GOOD RESULT
+		{
+			for(int j = 0; j < quarom_count; j++)
+			{
+				if (responses[j][0] == 0)  // IT IS A LIVE VALUE, CHECK IT
+				{
+					if (responses[j][1] == response_value) // WE HAVE A MATCH
+					{
+						responses[j][2] = responses[j][2] + 1;  // INCREMENT THE COUNT
+						if (responses[j][2] >= quarom_count)
+						{
+							have_quarom = 1;
+							quarom_value = responses[j][1]; // SAVE IT AS THE RETURN VALUE
+							printf("We have a quarom for value j = %d and quarom value = %d.\n", j, quarom_value);
+							break; // END FOR LOOP
+						}
+					}
+				} else {  // WE ARE AT AN NOT LIVE VALUE
+					responses[j][0] = 0; //MAKE IT LIVE
+					responses[j][1] = response_value;
+					responses[j][2] = 1;
+					break;   // END FOR LOOP
+				}
+			}
+		} else {
+			// REPORT THAT THE RESPONSE VALUE WAS BAD.
+		}
+
+		if (have_quarom == 1)  // if we have a quarom, we can leave.
+		{
+			break;
+		}
+	}  // LOOP TO THE NEXT SERVER
+
+	if (have_quarom == 1)
+	{
+		outdata_get.key   = indata->key;
+		outdata_get.value = quarom_value;
+		outdata_get.status = OK;
+		outdata_get.command = RPC_GET;
+		outdata_get.lc = my_lc;
+		outdata_get.pid = 0;
+		sprintf(s_command, "SEND=OK(%d)", outdata_get.value);
+	} else {
+		outdata_get.key  = indata->key;
+		outdata_get.value = -1;
+		outdata_get.status = NACK;
+		outdata_get.command = RPC_GET;
+		outdata_get.lc = my_lc;
+		outdata_get.pid = 0;
+		sprintf(s_command, "SEND=NACK");
+	}
+
+	log_write("server.log", "client", s_command);
+
+	return(&outdata_get);
 
 }
 
@@ -547,7 +695,13 @@ xdrMsg * server_rpc_2pc(xdrMsg * indata) {
  *******************************************************/
 int server_rpc_init(char** servers_list, int the_server_count) {
 	server_count = the_server_count;
+	quarom_count = (server_count / 2) + 1;
+	printf("With %d Servers the required servers for a quarom is %d.\n", server_count, quarom_count);
 	servers = servers_list;
+
+	my_lc = 0;
+
+
 	struct utsname unameData;
 	uname(&unameData);
 
@@ -571,7 +725,7 @@ int server_rpc_init(char** servers_list, int the_server_count) {
 	if (status < 0)
 		printf("PUT FAILED TO REGISTER\n");
 
-	status = registerrpc(RPC_PROG_NUM, RPC_PROC_VER, RPC_GET, server_rpc_get,
+	status = registerrpc(RPC_PROG_NUM, RPC_PROC_VER, RPC_GET, proposer_get,
 			xdr_rpc, &xdr_rpc);
 
 	if (status < 0)
@@ -588,6 +742,12 @@ int server_rpc_init(char** servers_list, int the_server_count) {
 
 	if (status < 0)
 		printf("2PC FAILED TO REGISTER\n");
+
+	status = registerrpc(RPC_PROG_NUM, RPC_PROC_VER, RPC_LEARN_GET, learner_get,
+			xdr_rpc, &xdr_rpc);
+
+	if (status < 0)
+		printf("LEARN_GET FAILED TO REGISTER\n");
 
 	printf("Now Listening for Commands...\n");
 	svc_run();
