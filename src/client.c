@@ -390,6 +390,7 @@ int client_ui(char** servers, int server_count) {
 
 			message.key = key;
 			message.value = value;
+			message.command = command;
 
 			int status = client_rpc_send(servers[server_index], command, &message, &response);
 

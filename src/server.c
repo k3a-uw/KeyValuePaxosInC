@@ -24,7 +24,7 @@ int hpc    = -1;  //my highest promised clock
 xdrMsg hpv = { 0 };  // my highest proposed value
 
 xdrMsg outdata_get = { 0 };
-xdrMsg outdata_put = { 0 };
+xdrMsg outdata_propose = { 0 };
 xdrMsg outdata_del = { 0 };
 xdrMsg outdata_learn = { 0 };
 xdrMsg outdata_prepare = { 0 };
@@ -347,8 +347,27 @@ xdrMsg * server_rpc_del(xdrMsg * indata) {
 xdrMsg * acceptor_accept(xdrMsg * indata)
 {
 	char s_command[BUFFSIZE];
-	sprintf(s_command, "RECV=ACCEPT(L=%d, K=%d, V=%d)", indata->lc, indata->key, indata->value);
+
+	switch (indata->command)
+	{
+	case RPC_PUT:
+		sprintf(s_command, "RECV=ACCEPT_PUT(L=%d, K=%d, V=%d)", indata->lc, indata->key, indata->value);
+		break;
+	case RPC_DEL:
+		sprintf(s_command, "RECV=ACCEPT_DEL(L=%d, K=%d)", indata->lc, indata->key);
+		break;
+	default:
+		sprintf(s_command, "RECV=ACCEPT_BAD(cmd=%d)", indata->command);
+		log_write("server.log", "proposer", s_command);
+		sprintf(s_command, "SEND=NACK");
+		log_write("server.log", "proposer", s_command);
+		outdata_accept = hpv;
+		outdata_accept.status = NACK;
+		return (&outdata_accept);
+	}
+
 	log_write("server.log", "proposer", s_command);
+
 	if (indata->lc < hpc)
 	{
 		// PROVIDE THE LAST VALUE
@@ -361,9 +380,15 @@ xdrMsg * acceptor_accept(xdrMsg * indata)
 		outdata_accept = hpv;
 		outdata_accept.lc = hpc;
 		outdata_accept.status = ACCEPT;
-		sprintf(s_command, "SEND=ACCEPT(L=%d, K=%d, V=%d", outdata_accept.lc, outdata_accept.key, outdata_accept.value);
+		if (indata->command == RPC_PUT)
+		{
+			sprintf(s_command, "SEND=ACCEPT_PUT(L=%d, K=%d, V=%d", outdata_accept.lc, outdata_accept.key, outdata_accept.value);
+		} else {
+			sprintf(s_command, "SEND=ACCEPT_DEL(L=%d, K=%d)", outdata_accept.lc, outdata_accept.key);
+		}
 	}
 
+	log_write("server.log", "proposer", s_command);
 	return (&outdata_accept);
 
 }
@@ -389,8 +414,6 @@ xdrMsg * acceptor_prepare(xdrMsg * indata)
 	} else {  // OTHERWISE, MAKE THE PROMISE AND UPDATE THE HIGHEST PROMISED VALUES.
 		hpc = indata->lc; // STORE THE HPC
 		hpv = *indata;  //STORE THE HPC
-//		printf("Indata is k=%d, v=%d, cmd=%d\n", indata->key, indata->value, indata->command);
-//		printf("Setting the HPV with k=%d, v=%d, cmd=%d\n", hpv.key, hpv.value, hpv.command);
 		outdata_prepare.status = PROMISE;
 		outdata_prepare.lc = hpc;
 		outdata_prepare.pid = 0;
@@ -455,7 +478,7 @@ xdrMsg * learner_learn(xdrMsg * indata)
 
 	case RPC_GET:
 
-		sprintf(s_command, "RECV=GET(%d)", indata->key);
+		sprintf(s_command, "RECV=LEARN_GET(%d)", indata->key);
 		log_write("server.log", "proposer", s_command);
 		int value;
 		result = kv_get(kv_store, indata->key, &value);
@@ -486,34 +509,6 @@ xdrMsg * learner_learn(xdrMsg * indata)
 
 }
 
-//xdrMsg * learner_get(xdrMsg * indata)
-//{
-//	char s_command[BUFFSIZE];
-//
-//	sprintf(s_command, "RECV=GET(%d)", indata->key);
-//	log_write("server.log", "Proposer", s_command);
-//	int value;
-//	int result = kv_get(kv_store, indata->key, &value);
-//
-//	if (result == 0) {
-//		outdata_learn_get.key = indata->key;
-//		outdata_learn_get.value = value;
-//		outdata_learn_get.status = OK;
-//		outdata_learn_get.lc = my_lc;
-//		outdata_learn_get.pid = 0;
-//		sprintf(s_command, "SEND=OK(%d)", outdata_learn_get.value);
-//	} else {  // KEY NOT FOUND
-//		outdata_learn_get.key = indata->key;
-//		outdata_learn_get.value = -1;
-//		outdata_learn_get.status = NACK;
-//		outdata_learn_get.lc = my_lc;
-//		outdata_learn_get.pid = 0;
-//		sprintf(s_command, "SEND=NACK");
-//	}
-//
-//	log_write("server.log", "Proposer", s_command);
-//	return(&outdata_learn_get);
-//}
 
 // CODE THE PROPOSER WILL RUN WHEN A CLIENT SEND A GET
 xdrMsg * proposer_get(xdrMsg * indata)
@@ -652,10 +647,28 @@ xdrMsg * proposer_get(xdrMsg * indata)
 }
 
 // CODE THE PROPOSER WILL RUN WHEN A CLIENT SEND A GET
-xdrMsg * proposer_put(xdrMsg * indata)
+xdrMsg * proposer_propose(xdrMsg * indata)
 {
 	char s_command[BUFFSIZE];
-	sprintf(s_command, "RECV=PUT(%d,%d)", indata->key, indata->value);
+
+	switch (indata->command)
+	{
+	case RPC_PUT:
+		sprintf(s_command, "RECV=PROPOSE_PUT(L=%d, K=%d, V=%d)", indata->lc, indata->key, indata->value);
+		break;
+	case RPC_DEL:
+		sprintf(s_command, "RECV=PROPOSE_DEL(L=%d, K=%d)", indata->lc, indata->key);
+		break;
+	default:  // BAD COMMAND RETURN A NACK
+		sprintf(s_command, "RECV=PROPOSE_BAD(cmd=%d)", indata->command);
+		log_write("server.log", "client", s_command);
+		sprintf(s_command, "SEND=NACK(%d)", indata->command);
+		log_write("server.log", "client", s_command);
+		outdata_propose = *indata;
+		outdata_propose.status = NACK;
+		return(&outdata_propose);
+	}
+
 	log_write("server.log", "client", s_command);
 
 	my_lc = my_lc + 1;
@@ -668,7 +681,7 @@ xdrMsg * proposer_put(xdrMsg * indata)
 	message.lc      = my_lc;
 	message.pid     = 0;
 	message.status  = OK;
-	message.command = RPC_PUT;
+	message.command = indata->command;
 
 	int promise_count = 0;
 
@@ -678,7 +691,11 @@ xdrMsg * proposer_put(xdrMsg * indata)
 	// SEND PREPARE(MESSAGE) TO ACCEPTORS
 	for (int i = 0; i < server_count; i++)
 	{
-		sprintf(s_command, "SEND=PREPARE(L=%d,K=%d,V=%d)", message.lc, message.key, message.value);
+		if (message.command == RPC_PUT)
+			sprintf(s_command, "SEND=PREPARE_PUT(L=%d, K=%d, V=%d)", message.lc, message.key, message.value);
+		else // it has to be delete
+			sprintf(s_command, "SEND=PREPARE_DEL(L=%d, K=%d", message.lc, message.key);
+
 		if (strcmp(myname, servers[i]) == 0)
 		{   // AUTOMATICALLY ASSUME THAT ONES SELF WOULD ACTUALLY REPSPOND WITH PROMISE
 			log_write("server.log", "localhost", s_command);
@@ -693,7 +710,6 @@ xdrMsg * proposer_put(xdrMsg * indata)
 			log_write("server.log", "localhost", s_command);
 		} else {
 			log_write("server.log", servers[i], s_command);
-//			printf("SEnding a prepare with command = %d\n.", message.command);
 			current_status = callrpc(servers[i],
 					RPC_PROG_NUM,
 					RPC_PROC_VER,
@@ -704,8 +720,6 @@ xdrMsg * proposer_put(xdrMsg * indata)
 					&response);
 
 			current_result = response;
-
-//			printf("The result of which is response = %d or current_result = %d\n", response.command, current_result.command);
 
 			if (current_result.status == PROMISE)
 				sprintf(s_command, "REVC=PROMISE(L=%d)", response.lc);
@@ -734,16 +748,20 @@ xdrMsg * proposer_put(xdrMsg * indata)
 	if (promise_count < quarom_count)
 	{
 		// NO QUAROM, RESPOND TO CLIENT WITH FAILURE
-		sprintf(s_command, "SEND=PUT_FAILURE(%d,%d)", message.key, message.value);
-		log_write("server.log", "client", s_command);
-		outdata_put.lc = my_lc;
-		outdata_put.pid = 0;
-		outdata_put.status = NACK;
-		outdata_put.key = message.key;
-		outdata_put.value = message.value;
-		outdata_put.command = RPC_PUT;
+		if (message.command == RPC_PUT)
+			sprintf(s_command, "SEND=PUT_FAILURE(%d,%d)", message.key, message.value);
+		else
+			sprintf(s_command, "SEND=DEL_FAILURE(%d,%d)", message.key);
 
-		return(&outdata_put);
+		log_write("server.log", "client", s_command);
+		outdata_propose.lc = my_lc;
+		outdata_propose.pid = 0;
+		outdata_propose.status = NACK;
+		outdata_propose.key = message.key;
+		outdata_propose.value = message.value;
+		outdata_propose.command = message.command;
+
+		return(&outdata_propose);
 
 	}
 
@@ -752,9 +770,11 @@ xdrMsg * proposer_put(xdrMsg * indata)
 	current_status = -1;
 	current_result = (xdrMsg) { 0 };
 	message.status = OK;
-	message.command = RPC_PUT;
 
-	sprintf(s_command, "SEND=ACCEPT(L=%d, K=%d, V=%d)", message.lc, message.key, message.value);
+	if (message.command == RPC_PUT)
+		sprintf(s_command, "SEND=ACCEPT_PUT(L=%d, K=%d, V=%d)", message.lc, message.key, message.value);
+	else
+		sprintf(s_command, "SEND=ACCEPT_DEL(L=%d, K=%d)", message.lc, message.key);
 	// LOOP THROUGH ALL SERVERS AND GET ACCEPTS
 	for (int i = 0; i < server_count; i++)
 	{
@@ -770,7 +790,11 @@ xdrMsg * proposer_put(xdrMsg * indata)
 			current_result.value   = message.value;
 			current_result.command = message.command;
 			current_result.pid     = 0;
-			sprintf(s_command, "RECV=ACCEPTED(L=%d, K=%d, V=%d", message.lc, message.key, message.value);
+			if (message.command == RPC_PUT)
+				sprintf(s_command, "RECV=ACCEPTED_PUT(L=%d, K=%d, V=%d)", message.lc, message.key, message.value);
+			else
+				sprintf(s_command, "RECV=ACCEPTED_DEL(L=%d, K=%d)", message.lc, message.key);
+
 			log_write("server.log", "localhost", s_command);
 		} else {
 
@@ -784,8 +808,10 @@ xdrMsg * proposer_put(xdrMsg * indata)
 					&response);
 			current_result = response;
 
-			if (response.status == ACCEPT)
-				sprintf(s_command, "RECV=ACCEPTED(L=%d, K=%d, V=%d)", message.lc, message.key, message.value);
+			if (response.status == ACCEPT && message.command == RPC_PUT)
+				sprintf(s_command, "RECV=ACCEPTED_PUT(L=%d, K=%d, V=%d)", message.lc, message.key, message.value);
+			else if (response.status == ACCEPT && message.command == RPC_DEL)
+				sprintf(s_command, "RECV=ACCEPTED_DEL(L=%d, K=%d)", message.lc, message.key);
 			else
 				sprintf(s_command, "RECV=NACK(L=%d)", message.lc);
 
@@ -806,15 +832,18 @@ xdrMsg * proposer_put(xdrMsg * indata)
 	if (promise_count < quarom_count)
 	{
 		// NO QUAROM, RETURN THE FAILURE MESSAGE.
-		sprintf(s_command, "SEND=PUT_FAILURE(K=%d, V=%d)", message.key, message.value);
+		if (message.command == RPC_PUT)
+			sprintf(s_command, "SEND=PUT_FAILURE(K=%d, V=%d)", message.key, message.value);
+		else
+			sprintf(s_command, "SEND=DEL_FAILURE(K=%d), message.key");
 		log_write("server.log", "client", s_command);
-			outdata_put.status = NACK;
-		outdata_put.key = message.key;
-		outdata_put.value = message.value;
-		outdata_put.command = RPC_PUT;
-		outdata_put.pid = 0;
-		outdata_put.lc = my_lc;
-		return (&outdata_put);
+		outdata_propose.status = NACK;
+		outdata_propose.key = message.key;
+		outdata_propose.value = message.value;
+		outdata_propose.command = message.command;
+		outdata_propose.pid = 0;
+		outdata_propose.lc = my_lc;
+		return (&outdata_propose);
 	}
 
 
@@ -824,9 +853,19 @@ xdrMsg * proposer_put(xdrMsg * indata)
 		if (strcmp(myname, servers[i]) == 0)
 		{
 			// IF IT IS THE SAME, JUST DO THE LEARNING YOURSELF
-			sprintf(s_command, "SEND=LEARN(%d,%d)", indata->key, indata->value);
+			if (message.command == RPC_PUT)
+				sprintf(s_command, "SEND=LEARN_PUT(%d,%d)", message.key);
+			else
+				sprintf(s_command, "SEND=LEARN_DEL(%d)", message.key);
+
 			log_write("server.log", "localhost", s_command);
-			int result = kv_put(kv_store, indata->key, indata->value);
+
+			int result;
+			if (message.command == RPC_PUT)
+				result = kv_put(kv_store, indata->key, indata->value);
+			else
+				result = kv_del(kv_store, indata->key);
+
 			if (result == 0)
 				sprintf(s_command, "RECV=LEARN_SUCCESS(%d, %d)", indata->key, indata->value);
 			else
@@ -834,9 +873,13 @@ xdrMsg * proposer_put(xdrMsg * indata)
 			log_write("server.log", "localhost", s_command);
 
 		} else {
-			sprintf(s_command, "SEND=LEARN(%d,%d)", message.key, message.value);
+			if (message.command == RPC_PUT)
+				sprintf(s_command, "SEND=LEARN_PUT(%d,%d)", message.key, message.value);
+			else
+				sprintf(s_command, "SEND=LEARN_DEL(%d,%d)", message.key, message.value);
+
 			log_write("server.log", servers[i], s_command);
-			message.command = RPC_PUT;
+			message.command = indata->command;
 			message.status = OK;
 			message.pid = 0;
 			int status = callrpc(servers[i],
@@ -859,13 +902,13 @@ xdrMsg * proposer_put(xdrMsg * indata)
 
 
 	// NOW THAT ALL OF THE STUFF HAS BEEN DONE.  RETURN TO THE CLIENT.
-	outdata_put.command = RPC_PUT;
-	outdata_put.lc = my_lc;
-	outdata_put.status = OK;
-	outdata_put.key = message.key;
-	outdata_put.value = message.value;
-	outdata_put.pid = 0;
-	return(&outdata_put);
+	outdata_propose.command = message.command;
+	outdata_propose.lc = my_lc;
+	outdata_propose.status = OK;
+	outdata_propose.key = message.key;
+	outdata_propose.value = message.value;
+	outdata_propose.pid = 0;
+	return(&outdata_propose);
 
 }
 
@@ -989,7 +1032,7 @@ int server_rpc_init(char** servers_list, int the_server_count) {
 
 	printf("Registering RPC...\n");
 
-	status = registerrpc(RPC_PROG_NUM, RPC_PROC_VER, RPC_PUT, proposer_put,
+	status = registerrpc(RPC_PROG_NUM, RPC_PROC_VER, RPC_PUT, proposer_propose,
 			xdr_rpc, &xdr_rpc);
 
 	if (status < 0)
@@ -1001,7 +1044,7 @@ int server_rpc_init(char** servers_list, int the_server_count) {
 	if (status < 0)
 		printf("GET FAILED TO REGISTER\n");
 
-	status = registerrpc(RPC_PROG_NUM, RPC_PROC_VER, RPC_DEL, server_rpc_del,
+	status = registerrpc(RPC_PROG_NUM, RPC_PROC_VER, RPC_DEL, proposer_propose,
 			xdr_rpc, &xdr_rpc);
 
 	if (status < 0)
