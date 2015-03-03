@@ -65,5 +65,6 @@ typedef struct msgRpc{
 } xdrMsg;
 
 int xdr_rpc(XDR* xdr, xdrMsg* content);
+int xdr_compare(xdrMsg * a, xdrMsg * b);
 
 #endif

@@ -26,6 +26,12 @@ int xdr_rpc(XDR * xdr, xdrMsg * content)
 		              return (0);
 		if (!xdr_int(xdr, &content->status))
 					  return (0);
+		if (!xdr_int(xdr, &content->command))
+					  return (0);
+		if (!xdr_int(xdr, &content->lc))
+					  return(0);
+		if (!xdr_int(xdr, &content->pid))
+		              return (0);
 
 		return (1);
 }
@@ -33,5 +39,16 @@ int xdr_rpc(XDR * xdr, xdrMsg * content)
 
 int xdr_compare(xdrMsg * a, xdrMsg * b)
 {
-	// if key, value and command are the same, return 1 else -1
+//	printf("Looking at the compare:\n a->key = %d \t b->key = %d \n a->value = %d \t b->value = %d \n a->cmd = %d \t b->cmd = %d \n",
+//			a->key, b->key, a->value, b->value, a->command, b->command);
+
+	if (a->key     == b->key
+	&&  a->value   == b->value
+	&&	a->command == b->command
+	)
+	{
+		return(1);
+	} else {
+		return(-1);
+	}
 }
