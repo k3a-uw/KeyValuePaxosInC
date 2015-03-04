@@ -30,6 +30,8 @@ xdrMsg outdata_learn   = { 0 };
 xdrMsg outdata_prepare = { 0 };
 xdrMsg outdata_accept  = { 0 };
 
+struct timespec fail;
+
 ///********************************************************
 // * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR GETTING *
 // * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE     *
@@ -345,6 +347,12 @@ xdrMsg outdata_accept  = { 0 };
 
 // CODE THE ACCEPTER WILL RUN WHEN IT RECEIVES AN ACCEPT
 int server_rpc_init(char** servers_list, int the_server_count) {
+
+	srand(time(NULL));  // seed the random number generator for failures.
+	fail.tv_sec = FAIL_DURATION;
+
+
+
 	server_count = the_server_count;
 	quarom_count = (server_count / 2) + 1;
 	printf("With %d Servers the required servers for a quarom is %d.\n", server_count, quarom_count);
@@ -425,6 +433,9 @@ int server_rpc_init(char** servers_list, int the_server_count) {
 
 xdrMsg * acceptor_accept(xdrMsg * indata)
 {
+	chaos_function();
+
+
 	char s_command[BUFFSIZE];
 
 	switch (indata->command)
@@ -475,6 +486,8 @@ xdrMsg * acceptor_accept(xdrMsg * indata)
 // CODE THE ACCEPTER WILL RUN WHEN IT RECEIVES A PREPARE
 xdrMsg * acceptor_prepare(xdrMsg * indata)
 {
+	chaos_function();
+
 	char s_command[BUFFSIZE];
 
 	sprintf(s_command, "RECV=PREPARE(L=%d)", indata->lc);
@@ -510,6 +523,8 @@ xdrMsg * acceptor_prepare(xdrMsg * indata)
 // CODE THE LEARNER WILL RUN WHEN IT RECEIVES A LEARN FROM ACCEPTOR
 xdrMsg * learner_learn(xdrMsg * indata)
 {
+	chaos_function();
+
 	char s_command[BUFFSIZE];
 
 	outdata_learn.lc = my_lc;
@@ -592,6 +607,7 @@ xdrMsg * learner_learn(xdrMsg * indata)
 // CODE THE PROPOSER WILL RUN WHEN A CLIENT SEND A GET
 xdrMsg * proposer_get(xdrMsg * indata)
 {
+
 	my_lc = my_lc + 1;
 	char s_command[BUFFSIZE];
 	sprintf(s_command, "RECV=GET(%d)", indata->key);
@@ -728,6 +744,7 @@ xdrMsg * proposer_get(xdrMsg * indata)
 // CODE THE PROPOSER WILL RUN WHEN A CLIENT SEND A GET
 xdrMsg * proposer_propose(xdrMsg * indata)
 {
+
 	char s_command[BUFFSIZE];
 	my_lc = my_lc + 1;
 
@@ -1001,8 +1018,8 @@ xdrMsg * proposer_propose(xdrMsg * indata)
 	// NOW THAT ALL OF THE STUFF HAS BEEN DONE.  RETURN TO THE CLIENT.
 	outdata_propose.command = message.command;
 	outdata_propose.lc = my_lc;
-	outdata_propose.status = OK;
 	outdata_propose.key = message.key;
+	outdata_propose.status = response.status;
 	outdata_propose.value = message.value;
 	outdata_propose.pid = 0;
 	return(&outdata_propose);
@@ -1133,6 +1150,22 @@ xdrMsg * proposer_propose(xdrMsg * indata)
 //
 //	return (0);
 //}
+
+
+void chaos_function()
+{
+	int r = (rand() % 100);
+	if (r < FAIL_RATE)
+	{
+		log_write("server.log", myname, "!!!!!!!SYSTEM_FAILURE!!!!!");
+		exit(-1);
+//		printf("\n");
+//		nanosleep(&fail, NULL);
+//		printf("\n");
+//		log_write("server.log", myname, "!!!!!!!SYSTEM_RESUMED!!!!!");
+	}
+}
+
 
 /**********************************
  * WRITES AN ERROR TO THE CONSOLE *

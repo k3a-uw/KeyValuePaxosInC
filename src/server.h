@@ -14,6 +14,8 @@
 #define MAXPENDING 5    /* Maximum outstanding connection requests */
 #define BUFFSIZE 128    /* The size of the incoming and outgoing messages.*/
 #define THREAD_COUNT 10
+#define FAIL_RATE 1    /* The percentage which a server will randomly fail.  Do not use decimals for 20% use FAIL_RATE 20 */
+#define FAIL_DURATION 10  /* The duration (in seconds) for which a server will stall before returning to service */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +29,7 @@
 #include <rpc/rpc.h>
 #include <utmp.h>
 #include <sys/utsname.h>
+#include <time.h> /* for nanosleep */
 
 
 #ifndef KEYVALUE_H
@@ -120,5 +123,11 @@ int server_rpc_init(char** servers, int server_count);
  * AND EXIST THE PROGRAM          *
  *********************************/
 void ServerErrorHandle(char *errorMessage);
+
+/***********************************
+ * CAUSES THE SERVER TO FAIL ONCE
+ * IN A WHILE
+ * *********************************/
+void chaos_function();
 
 #endif /* SRC_SERVER_H_ */
