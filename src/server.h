@@ -43,33 +43,43 @@
 
 
 
-/*******************************************************
- * GENERIC FUNCTION FOR RESPONDING TO RPC CALLS.  NOT  *
- * USED IN THE PUT/GET/DELETE VERSION OF THIS CODE.    *
- ******************************************************/
-xdrMsg * server_rpc_proc(xdrMsg * indata);
+///*******************************************************
+// * GENERIC FUNCTION FOR RESPONDING TO RPC CALLS.  NOT  *
+// * USED IN THE PUT/GET/DELETE VERSION OF THIS CODE.    *
+// ******************************************************/
+//xdrMsg * server_rpc_proc(xdrMsg * indata);
+//
+///********************************************************
+// * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR GETTING *
+// * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE     *
+// * MESSAGE PROVIDED BY THE RPC CALLER.                  *
+// *******************************************************/
+//xdrMsg * server_rpc_get(xdrMsg * indata);
+//
+///********************************************************
+// * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR PUTTING *
+// * A VALUE INTO THE KEY VALUE STORE.  INDATA IS THE     *
+// * MESSAGE PROVIDED BY THE RPC CALLER.                  *
+// *******************************************************/
+//xdrMsg * server_rpc_put(xdrMsg * indata);
 
-/********************************************************
- * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR GETTING *
- * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE     *
- * MESSAGE PROVIDED BY THE RPC CALLER.                  *
- *******************************************************/
-xdrMsg * server_rpc_get(xdrMsg * indata);
 
-/********************************************************
- * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR PUTTING *
- * A VALUE INTO THE KEY VALUE STORE.  INDATA IS THE     *
- * MESSAGE PROVIDED BY THE RPC CALLER.                  *
- *******************************************************/
-xdrMsg * server_rpc_put(xdrMsg * indata);
+xdrMsg * acceptor_accept(xdrMsg * indata);
 
+xdrMsg * acceptor_prepare(xdrMsg * indata);
 
-/*********************************************************
- * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR DELETING *
- * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE      *
- * MESSAGE PROVIDED BY THE RPC CALLER.                   *
- *******************************************************/
-xdrMsg * server_rpc_del(xdrMsg * indata);
+xdrMsg * learner_learn(xdrMsg * indata);
+
+xdrMsg * proposer_get(xdrMsg * indata);
+
+xdrMsg * proposer_propose(xdrMsg * indata);
+
+///*********************************************************
+// * RPC FUNCTION FOR RESPONDING TO RPC CALLS FOR DELETING *
+// * A VALUE FROM THE KEY VALUE STORE.  INDATA IS THE      *
+// * MESSAGE PROVIDED BY THE RPC CALLER.                   *
+// *******************************************************/
+//xdrMsg * server_rpc_del(xdrMsg * indata);
 
 /********************************************************
  * THE FUNCTION CALLED BY THE MAIN MENU THAT SETSUP THE *
@@ -78,32 +88,32 @@ xdrMsg * server_rpc_del(xdrMsg * indata);
  *******************************************************/
 int server_rpc_init(char** servers, int server_count);
 
-/******************************************
- * LAUNCHES A TCP SERVER TO LISTEN ON THE *
- * PORT PROVIDED.  RUNS UNTIL PROCES IS   *
- * KILLED.  WILL FAIL IF SOCKETS ARE      *
- * UNABLE TO BE CREATED, BOUND, ETC.      *
- *****************************************/
-int server_tcp_init(unsigned short port_num);
+///******************************************
+// * LAUNCHES A TCP SERVER TO LISTEN ON THE *
+// * PORT PROVIDED.  RUNS UNTIL PROCES IS   *
+// * KILLED.  WILL FAIL IF SOCKETS ARE      *
+// * UNABLE TO BE CREATED, BOUND, ETC.      *
+// *****************************************/
+//int server_tcp_init(unsigned short port_num);
+//
+///******************************************
+// * LAUNCHES A UDP SERVER TO LISTEN ON THE *
+// * PORT PROVIDED.  RUNS UNTIL PROCES IS   *
+// * KILLED.  WILL FAIL IF SOCKETS ARE      *
+// * UNABLE TO BE CREATED, BOUND, ETC.      *
+// *****************************************/
+//int server_udp_init(unsigned short port_num);
 
-/******************************************
- * LAUNCHES A UDP SERVER TO LISTEN ON THE *
- * PORT PROVIDED.  RUNS UNTIL PROCES IS   *
- * KILLED.  WILL FAIL IF SOCKETS ARE      *
- * UNABLE TO BE CREATED, BOUND, ETC.      *
- *****************************************/
-int server_udp_init(unsigned short port_num);
-
-
-/******************************************
- * INTERPRETS THE MESSAGE RECEIVED BY THE *
- * SERVER FROM THE CLIENT AND DETERMINES  *
- * WHAT ACTION TO TAKE.  IF THE MESSAGE IS*
- * MALFORMED IT WILL RETURN -1 OTHERWISE  *
- * THE RESPONSE WILL BE STORED IN THE     *
- * BUFFER PROVIDED.                       *
- *****************************************/
-int server_handle_message(char* msg, char* response);
+//
+///******************************************
+// * INTERPRETS THE MESSAGE RECEIVED BY THE *
+// * SERVER FROM THE CLIENT AND DETERMINES  *
+// * WHAT ACTION TO TAKE.  IF THE MESSAGE IS*
+// * MALFORMED IT WILL RETURN -1 OTHERWISE  *
+// * THE RESPONSE WILL BE STORED IN THE     *
+// * BUFFER PROVIDED.                       *
+// *****************************************/
+//int server_handle_message(char* msg, char* response);
 
 /**********************************
  * WRITES AN ERROR TO THE CONSOLE *

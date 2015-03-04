@@ -54,7 +54,7 @@ int client_rpc_send(char* hostname, int command, xdrMsg * message, xdrMsg * resp
 		switch (command)
 		{
 		case RPC_PUT:
-			if (response->key != -1)
+			if (response->status == OK)
 				sprintf(s_command,"RECV=PUT_SUCCESS(%d, %d)", message->key, message->value);
 			else
 				sprintf(s_command,"RECV=PUT_FAILURE(%d)", message->key);
@@ -66,7 +66,7 @@ int client_rpc_send(char* hostname, int command, xdrMsg * message, xdrMsg * resp
 				sprintf(s_command,"RECV=KEYNOTFOUND(%d)", message->key);
 			break;
 		case RPC_DEL:
-			if (response->key != -1)
+			if (response->status == OK)
 				sprintf(s_command,"RECV=DEL_SUCCESS(%d)", message->key);
 			else
 				sprintf(s_command,"RECV=KEYNOTFOUND(%d)", message->key);
@@ -153,6 +153,22 @@ void getRPCMessages(xdrMsg* messages) {
 	messages[12].key = 999;
 	messages[13].key = 999;
 	messages[14].key = 999;
+
+	messages[0].command = RPC_PUT;
+	messages[1].command = RPC_PUT;
+	messages[2].command = RPC_PUT;
+	messages[3].command = RPC_GET;
+	messages[4].command = RPC_GET;
+	messages[5].command = RPC_DEL;
+	messages[6].command = RPC_GET;
+	messages[7].command = RPC_PUT;
+	messages[8].command = RPC_DEL;
+	messages[9].command = RPC_GET;
+	messages[10].command = RPC_DEL;
+	messages[11].command = RPC_PUT;
+	messages[12].command = RPC_GET;
+	messages[13].command = RPC_DEL;
+	messages[14].command = RPC_DEL;
 
 	return;
 
