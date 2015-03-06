@@ -29,7 +29,6 @@
 #include <rpc/rpc.h>
 #include <utmp.h>
 #include <sys/utsname.h>
-#include <time.h> /* for nanosleep */
 
 
 #ifndef KEYVALUE_H
