@@ -447,7 +447,7 @@ xdrMsg * acceptor_accept(xdrMsg * indata)
 		sprintf(s_command, "RECV=ACCEPT_DEL(L=%d, K=%d)", indata->lc, indata->key);
 		break;
 	default:
-		sprintf(s_command, "RECV=ACCEPT_BAD(cmd=%d)", indata->command);
+		sprintf(s_command, "RECV=ACCEPT_BAD(cmd=%d, LC=%d)", indata->command, my_lc);
 		log_write("server.log", "proposer", s_command);
 		sprintf(s_command, "SEND=NACK");
 		log_write("server.log", "proposer", s_command);
@@ -538,41 +538,41 @@ xdrMsg * learner_learn(xdrMsg * indata)
 	switch (indata->command)
 	{
 	case RPC_PUT:
-		sprintf(s_command, "RECV=LEARN_PUT(%d, %d)", indata->key, indata->value);
+		sprintf(s_command, "RECV=LEARN_PUT(%d, %d, L=%d)", indata->key, indata->value, my_lc);
 		log_write("server.log", "proposer", s_command);
 
 		result = kv_put(kv_store, indata->key, indata->value);
 		if (result == 0)
 		{
-			sprintf(s_command, "SEND=PUT_SUCCESS(%d, %d)", indata->key, indata->value);
+			sprintf(s_command, "SEND=PUT_SUCCESS(%d, %d, L=%d)", indata->key, indata->value, my_lc);
 			outdata_learn.status = OK;
 		}
 		else
 		{
-			sprintf(s_command, "SEND=PUT_FAILURE(%d, %d)", indata->key, indata->value);
+			sprintf(s_command, "SEND=PUT_FAILURE(%d, %d, L=%d)", indata->key, indata->value, my_lc);
 			outdata_learn.status = NACK;
 		}
 		break;
 
 
 	case RPC_DEL:
-		sprintf(s_command, "RECV=LEARN_DEL(%d)", indata->key);
+		sprintf(s_command, "RECV=LEARN_DEL(%d, L=%d)", indata->key, my_lc);
 		log_write("server.log", "proposer", s_command);
 
 		result = kv_del(kv_store, indata->key);
 		if (result == 0)
 		{
-			sprintf(s_command, "SEND=DEL_SUCCESS(%d)", indata->key);
+			sprintf(s_command, "SEND=DEL_SUCCESS(%d, L=%d)", indata->key, my_lc);
 			outdata_learn.status = OK;
 		} else {
-			sprintf(s_command, "SEND=DEL_FAILURE(%d)", indata->key);
+			sprintf(s_command, "SEND=DEL_FAILURE(%d, L=%d)", indata->key, my_lc);
 			outdata_learn.status = NACK;
 		}
 		break;
 
 	case RPC_GET:
 
-		sprintf(s_command, "RECV=LEARN_GET(%d)", indata->key);
+		sprintf(s_command, "RECV=LEARN_GET(%d, L=%d)", indata->key, my_lc);
 		log_write("server.log", "proposer", s_command);
 		int value;
 		result = kv_get(kv_store, indata->key, &value);
@@ -580,16 +580,16 @@ xdrMsg * learner_learn(xdrMsg * indata)
 		if (result == 0) {
 			outdata_learn.status = OK;
 			outdata_learn.value = value;
-			sprintf(s_command, "SEND=OK(%d)", outdata_learn.value);
+			sprintf(s_command, "SEND=OK(%d, L=%d)", outdata_learn.value, my_lc);
 		} else {  // KEY NOT FOUND
 			outdata_learn.status = NACK;
-			sprintf(s_command, "SEND=NACK");
+			sprintf(s_command, "SEND=NACK(L=%d", my_lc);
 		}
 
 		break;
 
 	default:
-		sprintf(s_command, "RECV=BAD_LEARN(%d)", indata->command);
+		sprintf(s_command, "RECV=BAD_LEARN(%d, L=%d)", indata->command, my_lc);
 		log_write("server.log", "proposer", s_command);
 		sprintf(s_command, "SEND=NACK");
 		outdata_learn.status = NACK;
@@ -610,7 +610,7 @@ xdrMsg * proposer_get(xdrMsg * indata)
 
 	my_lc = my_lc + 1;
 	char s_command[BUFFSIZE];
-	sprintf(s_command, "RECV=GET(%d)", indata->key);
+	sprintf(s_command, "RECV=GET(%d, L=%d)", indata->key, my_lc);
 	log_write("server.log", "client", s_command);
 
 	xdrMsg message  = { 0 };
@@ -642,7 +642,7 @@ xdrMsg * proposer_get(xdrMsg * indata)
 		int response_value = 0;
 		int response_status = NACK;
 		int status;
-		sprintf(s_command, "SEND=LEARNER_GET(%d)", indata->key);
+		sprintf(s_command, "SEND=LEARNER_GET(%d, L=%d)", indata->key, my_lc);
 		if (strcmp(myname, servers[i]) == 0)
 		{  // GET THE VALUE FROM LOCAL
 			log_write("server.log", "localhost", s_command);
@@ -650,9 +650,9 @@ xdrMsg * proposer_get(xdrMsg * indata)
 			response_status = OK;
 			if (status == 0)
 			{
-				sprintf(s_command, "RECV=OK(%d)", response_value);
+				sprintf(s_command, "RECV=OK(%d, L=%d)", response_value, my_lc);
 			} else {
-				sprintf(s_command, "RECV=NACK");
+				sprintf(s_command, "RECV=NACK(L=%d", my_lc);
 			}
 			log_write("server.log", "localhost", s_command);
 		} else {
@@ -672,9 +672,9 @@ xdrMsg * proposer_get(xdrMsg * indata)
 
 			if (status == 0 && response_status == OK)
 			{
-				sprintf(s_command, "RECV=OK(%d)", response.value);
+				sprintf(s_command, "RECV=OK(%d, L=%d)", response.value, my_lc);
 			} else {
-				sprintf(s_command, "RECV=NACK");
+				sprintf(s_command, "RECV=NACK(L=%d)", my_lc);
 			}
 
 			log_write("server.log",servers[i], s_command);
@@ -724,7 +724,7 @@ xdrMsg * proposer_get(xdrMsg * indata)
 		outdata_get.command = RPC_GET;
 		outdata_get.lc = my_lc;
 		outdata_get.pid = 0;
-		sprintf(s_command, "SEND=OK(%d)", outdata_get.value);
+		sprintf(s_command, "SEND=OK(%d, L=%d)", outdata_get.value, my_lc);
 	} else {
 		outdata_get.key  = indata->key;
 		outdata_get.value = -1;
@@ -732,7 +732,7 @@ xdrMsg * proposer_get(xdrMsg * indata)
 		outdata_get.command = RPC_GET;
 		outdata_get.lc = my_lc;
 		outdata_get.pid = 0;
-		sprintf(s_command, "SEND=NACK");
+		sprintf(s_command, "SEND=NACK(L=%d)", my_lc);
 	}
 
 	log_write("server.log", "client", s_command);
@@ -757,9 +757,9 @@ xdrMsg * proposer_propose(xdrMsg * indata)
 		sprintf(s_command, "RECV=PROPOSE_DEL(L=%d, K=%d)", my_lc, indata->key);
 		break;
 	default:  // BAD COMMAND RETURN A NACK
-		sprintf(s_command, "RECV=PROPOSE_BAD(cmd=%d)", indata->command);
+		sprintf(s_command, "RECV=PROPOSE_BAD(cmd=%d, L=%d)", indata->command, my_lc);
 		log_write("server.log", "client", s_command);
-		sprintf(s_command, "SEND=NACK(%d)", indata->command);
+		sprintf(s_command, "SEND=NACK(%d, L=%d)", indata->command, my_lc);
 		log_write("server.log", "client", s_command);
 		outdata_propose = *indata;
 		outdata_propose.status = NACK;
@@ -845,9 +845,9 @@ xdrMsg * proposer_propose(xdrMsg * indata)
 	{
 		// NO QUAROM, RESPOND TO CLIENT WITH FAILURE
 		if (message.command == RPC_PUT)
-			sprintf(s_command, "SEND=PUT_FAILURE(%d,%d)", message.key, message.value);
+			sprintf(s_command, "SEND=PUT_FAILURE(%d,%d, L=%d)", message.key, message.value, my_lc);
 		else
-			sprintf(s_command, "SEND=DEL_FAILURE(%d,%d)", message.key);
+			sprintf(s_command, "SEND=DEL_FAILURE(%d,%d, L=%d)", message.key, my_lc);
 
 		log_write("server.log", "client", s_command);
 		outdata_propose.lc = my_lc;
@@ -929,9 +929,10 @@ xdrMsg * proposer_propose(xdrMsg * indata)
 	{
 		// NO QUAROM, RETURN THE FAILURE MESSAGE.
 		if (message.command == RPC_PUT)
-			sprintf(s_command, "SEND=PUT_FAILURE(K=%d, V=%d)", message.key, message.value);
+			sprintf(s_command, "SEND=PUT_FAILURE(K=%d, V=%d, L=%d)", message.key, message.value, my_lc);
 		else
-			sprintf(s_command, "SEND=DEL_FAILURE(K=%d), message.key");
+			sprintf(s_command, "SEND=DEL_FAILURE(K=%d, L=%d)", message.key, my_lc);
+
 		log_write("server.log", "client", s_command);
 		outdata_propose.status = NACK;
 		outdata_propose.key = message.key;
@@ -950,9 +951,9 @@ xdrMsg * proposer_propose(xdrMsg * indata)
 		{
 			// IF IT IS THE SAME, JUST DO THE LEARNING YOURSELF
 			if (message.command == RPC_PUT)
-				sprintf(s_command, "SEND=LEARN_PUT(%d,%d)", message.key, message.value);
+				sprintf(s_command, "SEND=LEARN_PUT(%d,%d, L=%d)", message.key, message.value, my_lc);
 			else
-				sprintf(s_command, "SEND=LEARN_DEL(%d)", message.key);
+				sprintf(s_command, "SEND=LEARN_DEL(%d, L=%d)", message.key, my_lc);
 
 			log_write("server.log", "localhost", s_command);
 
@@ -965,23 +966,23 @@ xdrMsg * proposer_propose(xdrMsg * indata)
 			if (result == 0)
 			{
 				if  (message.command == RPC_PUT)
-					sprintf(s_command, "RECV=LEARN_SUCCESS(%d, %d)", indata->key, indata->value);
+					sprintf(s_command, "RECV=LEARN_SUCCESS(%d, %d, L=%d)", indata->key, indata->value, my_lc);
 				else
-					sprintf(s_command, "RECV=LEARN_SUCCESS(%d)", indata->key);
+					sprintf(s_command, "RECV=LEARN_SUCCESS(%d, L=%d)", indata->key, my_lc);
 			} else {
 				if (message.command == RPC_PUT)
-					sprintf(s_command, "RECV=LEARN_FAILURE(%d, %d)", indata->key, indata->value);
+					sprintf(s_command, "RECV=LEARN_FAILURE(%d, %d, L=%d)", indata->key, indata->value, my_lc);
 				else
-					sprintf(s_command, "RECV=LEARN_FAILURE(%d)", indata->key);
+					sprintf(s_command, "RECV=LEARN_FAILURE(%d, L=%d)", indata->key, my_lc);
 			}
 
 			log_write("server.log", "localhost", s_command);
 
 		} else {
 			if (message.command == RPC_PUT)
-				sprintf(s_command, "SEND=LEARN_PUT(%d,%d)", message.key, message.value);
+				sprintf(s_command, "SEND=LEARN_PUT(%d,%d, L=%d)", message.key, message.value, my_lc);
 			else
-				sprintf(s_command, "SEND=LEARN_DEL(%d,%d)", message.key);
+				sprintf(s_command, "SEND=LEARN_DEL(%d,%d, L=%d)", message.key, my_lc);
 
 			log_write("server.log", servers[i], s_command);
 			message.command = indata->command;
@@ -998,14 +999,14 @@ xdrMsg * proposer_propose(xdrMsg * indata)
 			if (status == 0 & response.status == OK)
 			{
 				if (message.command == RPC_PUT)
-					sprintf(s_command, "RECV=LEARN_PUT_SUCCESS(%d,%d)", response.key, response.value);
+					sprintf(s_command, "RECV=LEARN_PUT_SUCCESS(%d,%d, L=%d)", response.key, response.value, my_lc);
 				else
-					sprintf(s_command, "RECV=LEARN_DEL_SUCCESS(%d)", response.key);
+					sprintf(s_command, "RECV=LEARN_DEL_SUCCESS(%d, L=%d)", response.key, my_lc);
 			} else {
 				if (message.command == RPC_PUT)
-					sprintf(s_command, "RECV=LEARN_PUT_FAILURE(%d,%d)", response.key, response.value);
+					sprintf(s_command, "RECV=LEARN_PUT_FAILURE(%d,%d, L=%d)", response.key, response.value, my_lc);
 				else
-					sprintf(s_command, "RECV=LEARN_DEL_FAILURE(%d)", response.key);
+					sprintf(s_command, "RECV=LEARN_DEL_FAILURE(%d, L=%d)", response.key, my_lc);
 			}
 
 
