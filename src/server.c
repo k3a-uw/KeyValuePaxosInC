@@ -634,6 +634,7 @@ xdrMsg * proposer_get(xdrMsg * indata)
 		responses[i][2] =  0;
 	}
 
+	int my_value = -1;
 	// SEND LEARN_GET TO ALL LEARNERS
 	int have_quarom = 0;
 	int quarom_value = -1;
@@ -647,6 +648,7 @@ xdrMsg * proposer_get(xdrMsg * indata)
 		{  // GET THE VALUE FROM LOCAL
 			log_write("server.log", "localhost", s_command);
 			status = kv_get(kv_store, indata->key, &response_value);
+			my_value = response_value;
 			response_status = OK;
 			if (status == 0)
 			{
@@ -725,7 +727,8 @@ xdrMsg * proposer_get(xdrMsg * indata)
 		outdata_get.lc = my_lc;
 		outdata_get.pid = 0;
 		sprintf(s_command, "SEND=OK(%d, L=%d)", outdata_get.value, my_lc);
-		kv_put(kv_store, outdata_get.key, outdata_get.value);  //I AM LEARNING THE NEW VALUE!
+		if (my_value != outdata_get.value)  // I'M OUT OF DATE
+			kv_put(kv_store, outdata_get.key, outdata_get.value);  //SO I'M LEARNING THE VALUE
 	} else {
 		outdata_get.key  = indata->key;
 		outdata_get.value = -1;
