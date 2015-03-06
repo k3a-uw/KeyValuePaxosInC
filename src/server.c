@@ -728,7 +728,12 @@ xdrMsg * proposer_get(xdrMsg * indata)
 		outdata_get.pid = 0;
 		sprintf(s_command, "SEND=OK(%d, L=%d)", outdata_get.value, my_lc);
 		if (my_value != outdata_get.value)  // I'M OUT OF DATE
+		{
+			char r_command[BUFFSIZE];
+			sprintf(r_command, "Learning Key=%d, Value=%d", outdata_get.key, outdata_get.value);
 			kv_put(kv_store, outdata_get.key, outdata_get.value);  //SO I'M LEARNING THE VALUE
+			log_write("server.log", "localhost", r_command);
+		}
 	} else {
 		outdata_get.key  = indata->key;
 		outdata_get.value = -1;
