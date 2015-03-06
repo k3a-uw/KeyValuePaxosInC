@@ -725,6 +725,7 @@ xdrMsg * proposer_get(xdrMsg * indata)
 		outdata_get.lc = my_lc;
 		outdata_get.pid = 0;
 		sprintf(s_command, "SEND=OK(%d, L=%d)", outdata_get.value, my_lc);
+		kv_put(kv_store, outdata_get.key, outdata_get.value);  //I AM LEARNING THE NEW VALUE!
 	} else {
 		outdata_get.key  = indata->key;
 		outdata_get.value = -1;

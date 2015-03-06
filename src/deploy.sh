@@ -13,7 +13,7 @@ case "$1" in
         echo "Files distributed to nodes."
     	done
 		;;
-	sever)
+	server)
 		make
 		./tcss558 server
 		;;
