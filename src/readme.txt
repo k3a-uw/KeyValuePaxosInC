@@ -1,9 +1,9 @@
 ============================================
-TCSS558 PROJECT 3
+TCSS558 PROJECT 4
 2 PHASE COMMIT USING RPC 
 Authors: Danny Kristiyanto &
          Kevin E. Anderson
-Version: 2015.02.14
+Version: 2015.03.07
 ===========================================
 
 
@@ -37,3 +37,13 @@ USING THE SERVER
 The server will run indefinitely until a kill command (or ctr+c) is sent to the program.
 No user interaction is provided. Server will display all events and activities.
 All activity will be stored in the file "server.log."
+
+
+===============
+SERVER FAILURES
+===============
+Chaos has been introduced into this version of the distributed system.  For each message
+sent to an acceptor or learner there is a 1% chance of failure.  A failure will cause the
+program to throw an error to the screen and exit completely.  The system should continue
+to work as designed after the timeouts for RPC expire for any messages pending responses
+from the failed server.
